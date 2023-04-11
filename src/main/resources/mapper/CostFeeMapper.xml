@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cost.mapper.CostFeeMapper">
+
+    <select id="selectCostFeeListByfeeDocId" resultType="com.cost.domain.CostFee">
+        SELECT * FROM t_inf_p_cost_fee
+        <where>
+            <if test="feeDocId != null">
+                fee_doc_id = #{feeDocId}
+            </if>
+        </where>
+    </select>
+</mapper>

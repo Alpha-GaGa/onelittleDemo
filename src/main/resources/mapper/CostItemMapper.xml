@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cost.mapper.CostItemMapper">
+
+    <select id="selectCostItemListByItemId" resultType="com.cost.domain.CostItem">
+        select * from t_inf_p_cost_item
+        <where>
+            <if test="itemId != null">
+                AND id = #{itemId}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectCostItemListByParentId" resultType="com.cost.domain.CostItem">
+        select * from t_inf_p_cost_item
+        <where>
+            <if test="parentId != null">
+                and parent_id = #{parentId}
+            </if>
+        </where>
+    </select>
+</mapper>

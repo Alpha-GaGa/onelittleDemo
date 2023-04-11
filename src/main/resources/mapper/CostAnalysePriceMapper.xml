@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cost.mapper.CostAnalysePriceMapper">
+    <resultMap type="com.cost.domain.CostAnalysePrice" id="analysePriceMap">
+        <result property="id" column="id"/>
+        <result property="lineId" column="line_id"/>
+        <result property="costDocId" column="cost_doc_id"/>
+        <result property="parentId" column="parent_id"/>
+        <result property="itemId" column="item_id"/>
+        <result property="orderNum" column="order_num"/>
+        <result property="catalogId" column="catalog_id"/>
+        <result property="wmmId" column="wmm_id"/>
+        <result property="wmmName" column="wmm_name"/>
+        <result property="orderNo" column="order_no"/>
+        <result property="feeName" column="fee_name"/>
+        <result property="feeCode" column="fee_code"/>
+        <result property="feeExpr" column="fee_expr"/>
+        <result property="feeRate" column="fee_rate"/>
+        <result property="feeAmount" column="fee_amount"/>
+        <result property="unit" column="unit"/>
+        <result property="isOut" column="is_out"/>
+        <result property="explain" column="explain"/>
+        <result property="jzFee" column="jz_fee"/>
+        <result property="installFee" column="install_fee"/>
+        <result property="tariffExpression" column="tariff_expression"/>
+        <result property="baseTariffRate" column="base_tariff_rate"/>
+        <result property="baseTariffExpr" column="base_tariff_expr"/>
+        <result property="baseCalculate" column="base_calculate"/>
+        <result property="baseCalcuExpr" column="base_calcu_expr"/>
+        <result property="otherFee" column="other_fee"/>
+        <result property="status" column="status"/>
+<!--        <result property="createBy" column="create_by"/>-->
+<!--        <result property="createTime" column="create_time"/>-->
+<!--        <result property="updateBy" column="update_by"/>-->
+<!--        <result property="updateTime" column="update_time"/>-->
+<!--        <result property="remark" column="remark"/>-->
+    </resultMap>
+
+
+    <select id="selectCostAnalysePriceList"  resultMap="analysePriceMap">
+        select * from t_inf_p_analyse_price
+        <where>
+            <if test="itemId != null">
+                and item_id = #{itemId}
+            </if>
+        </where>
+        order by order_num
+    </select>
+</mapper>
