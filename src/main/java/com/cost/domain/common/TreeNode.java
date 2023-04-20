@@ -1,39 +1,55 @@
 package com.cost.domain.common;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.springframework.util.CollectionUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 树节点
+ * @description 构件树形对象接口
+ * @Created zhangtianhao
+ * @date 2023-04-12 00:18
+ * @version
  */
-@Data
-@NoArgsConstructor
-public class TreeNode<T extends TreeNode> {
+public interface TreeNode<T extends TreeNode<T>> {
     /**
-     * ID
+     * 获取自身Id
+     * @return
      */
-    private Long id;
-    /**
-     * 父节点ID
-     */
-    private Long parentId;
-    /**
-     * 节点Id构成的路径
-     */
-    private String path;
-    /**
-     * 子节点集合
-     */
-    private List<T> childList;
+    Long getId();
 
-    public void addChild(T childNode){
-        if (CollectionUtils.isEmpty(childList)){
-            childList = new ArrayList<T>();
+    /**
+     * 获取父节点If
+     * @return
+     */
+    Long getParentId();
+
+    /**
+     * 获取子目录
+     * @return
+     */
+    List<T> getChildren();
+
+    /**
+     * 获取子目录
+     * @return
+     */
+    void setChildren(List<T> children);
+
+    /**
+     * 默认的 addChild 实现方法
+     * @param childNode 子节点
+     */
+    default void addChildren(T childNode) {
+        // 如果子节点没空，直接返回
+        if (childNode == null) {
+            return;
         }
-        childList.add(childNode);
+
+        // 如果子节点集合为空，创建新集合
+        if (getChildren() == null) {
+            setChildren(new ArrayList<>());
+        }
+
+        // 添加子节点
+        getChildren().add(childNode);
     }
 }

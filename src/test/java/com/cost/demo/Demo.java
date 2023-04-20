@@ -1,8 +1,8 @@
 package com.cost.demo;
 
 import com.cost.DemoApplication;
-import com.cost.SweIndexAdjustHandler;
-import com.cost.SweItemAdjustHandler;
+import com.cost.SweIndexAdjustHandlerI;
+import com.cost.SweItemAdjustHandlerI;
 import com.cost.domain.CostAnalysePrice;
 import com.cost.domain.CostFee;
 import com.cost.domain.CostItem;
@@ -66,7 +66,7 @@ public class Demo {
         map.put("DJ5", new BigDecimal("120"));
 
         long begin = System.currentTimeMillis();
-        List<CostAnalysePrice> treeList = new SweItemAdjustHandler().getTree(costAnalysePriceList, map);
+        List<CostAnalysePrice> treeList = new SweItemAdjustHandlerI().getTree(costAnalysePriceList, map);
 
         log.info("计算数据,共用时：{}", System.currentTimeMillis() - begin);
         treeList.forEach(System.out::println);
@@ -113,7 +113,7 @@ public class Demo {
 
         // 代入计算
         long begin = System.currentTimeMillis();
-        List<CostAnalysePrice> treeList = new SweIndexAdjustHandler().getTree(costAnalysePriceList, map, itemList, costFeeList);
+        List<CostAnalysePrice> treeList = new SweIndexAdjustHandlerI().getTree(costAnalysePriceList, map, itemList, costFeeList);
 
         log.info("计算数据,共用时：{}", System.currentTimeMillis() - begin);
         treeList.forEach(System.out::println);

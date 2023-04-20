@@ -21,10 +21,10 @@ import java.util.stream.Collectors;
  * @date 2023-04-10 15:47
  */
 @Slf4j
-public class SweIndexAdjustHandler extends TreeDataHandler {
+public class SweIndexAdjustHandlerI extends ITreeDataHandler {
 
     /**
-     * 系统取费代号映射Map
+     * 系统费用代号映射Map
      */
     private Map<String, BigDecimal> systemFeeCodeMapping;
 
@@ -39,17 +39,17 @@ public class SweIndexAdjustHandler extends TreeDataHandler {
     private List<CostItem> costItemList;
 
     /**
-     * 取费代号映射Map
+     * 费用代号映射Map
      */
     private final Map<String, BigDecimal> feeCodeMapping = new HashMap<>();
 
     /**
-     * 取费代号Set
+     * 费用代号Set
      */
     private final Set<String> feeCodeSet = new HashSet<>();
 
     /**
-     * feeExpr中取费代号Set
+     * feeExpr中费用代号Set
      */
     private final Set<String> exprFeeCodeSet = new HashSet<>();
 
@@ -109,7 +109,7 @@ public class SweIndexAdjustHandler extends TreeDataHandler {
 
 
     /**
-     * 单价分析节点前置处理，先获取其feeExpr中包含的取费代号，以及获取已知值
+     * 单价分析节点前置处理，先获取其feeExpr中包含的费用代号，以及获取已知值
      *
      * @param node            当前操作节点
      * @param pendingTreeNode 待处理单价分析节点List
@@ -120,7 +120,7 @@ public class SweIndexAdjustHandler extends TreeDataHandler {
         CostAnalysePrice CostAnalysePrice = (CostAnalysePrice) node;
 
         String feeCode = CostAnalysePrice.getFeeCode();
-        // 把feeCode取费代号保存到feeCodeSet
+        // 把feeCode费用代号保存到feeCodeSet
         feeCodeSet.add(feeCode);
 
         // 如果该单价分析节点wmmId为0，feeExpr为具体的值，feeRate为具体工作量，freeAmount = feeExpr * feeRate
@@ -135,12 +135,12 @@ public class SweIndexAdjustHandler extends TreeDataHandler {
 
         // 如果如果该单价分析节点wmmId为-1，feeExpr为计算方程式或为空，需要进行拆解，方程式由数字及英文字符串和( ) + - * /构成
         if (null != CostAnalysePrice.getWmmId() && CostAnalysePrice.getWmmId().equals(-1L)) {
-            // 如果feeExpr非空，并且不是纯数字，获取公式中包含的取费代号
-            if (StringUtils.isNotBlank(CostAnalysePrice.getFeeExpr()) && CostAnalysePrice.getFeeExpr().matches("[a-zA-Z_]+")) {
+            // 如果feeExpr非空，并且不是纯数字，获取公式中包含的费用代号
+            if (StringUtils.isNotBlank(CostAnalysePrice.getFeeExpr()) && !CostAnalysePrice.getFeeExpr().matches("[\\d.]+")) {
                     // todo 是否除了数字、英文、_ 以为的费用代号组成
                     Matcher matcher = compile.matcher(CostAnalysePrice.getFeeExpr());
                     while (matcher.find()) {
-                        // 把公式中包含的取费代号保存到exprFeeCodeSet
+                        // 把公式中包含的费用代号保存到exprFeeCodeSet
                         exprFeeCodeSet.add(matcher.group());
                     }
             }
@@ -158,9 +158,9 @@ public class SweIndexAdjustHandler extends TreeDataHandler {
                 }
 
                 // todo 这里需要详细补充系统代号处理器的处理逻辑？
-                // 如果总价不为0，并且不是独立费，先从系统取费代号映射Map中获取对应值
+                // 如果总价不为0，并且不是独立费，先从系统费用代号映射Map中获取对应值
                 BigDecimal result = systemFeeCodeMapping.get(feeCode);
-                // 如果系统取费代号无法获取，需要从取费文件中获取
+                // 如果系统费用代号无法获取，需要从取费文件中获取
                 if(null == result) {
                     // 获取对应feeCode的取费文件数据
                     CostFee costFee = costFeeMapping.get(feeCode);
@@ -222,20 +222,20 @@ public class SweIndexAdjustHandler extends TreeDataHandler {
     }
 
     /**
-     * 在转换单价分析树形结构的前置业务处理，准备取费代号
+     * 在转换单价分析树形结构的前置业务处理，准备费用代号
      *
      * @param pendingTreeNode 待处理单价分析节点List
      * @param <T>             待处理单价分析节点
      */
     @Override
     public <T extends TreeNode> void treeProcessBefore(List<T> pendingTreeNode) {
-        // 过滤出exprFeeCodeSet中独有的取费代号
+        // 过滤出exprFeeCodeSet中独有的费用代号
         Set<String> unknownfeeCodeSet = exprFeeCodeSet.stream()
                 .filter(exprFeeCode -> !feeCodeSet.contains(exprFeeCode))
                 .collect(Collectors.toSet());
 
-        // todo 如果系统取费代号Map中不存在，需要怎么处理
-        // 从系统取费代号映射Map中获取对应值，保存到feeCodeMapping中
+        // todo 如果系统费用代号Map中不存在，需要怎么处理
+        // 从系统费用代号映射Map中获取对应值，保存到feeCodeMapping中
         unknownfeeCodeSet.forEach(unknownfeeCode -> {
 
             // todo 这里需要详细补充系统代号处理器的处理逻辑？

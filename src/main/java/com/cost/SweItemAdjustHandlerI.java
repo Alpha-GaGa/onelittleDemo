@@ -20,25 +20,25 @@ import java.util.stream.Collectors;
  * @version
  */
 @Slf4j
-public class SweItemAdjustHandler extends TreeDataHandler {
+public class SweItemAdjustHandlerI extends ITreeDataHandler {
 
     /**
-     * 系统取费代号映射Map
+     * 系统费用代号映射Map
      */
     private Map<String, BigDecimal> systemFeeCodeMapping;
 
     /**
-     * 取费代号映射Map
+     * 费用代号映射Map
      */
     private final Map<String, BigDecimal> feeCodeMapping = new HashMap<>();
 
     /**
-     * 取费代号Set
+     * 费用代号Set
      */
     private final Set<String> feeCodeSet = new HashSet<>();
 
     /**
-     * feeExpr中取费代号Set
+     * feeExpr中费用代号Set
      */
     private final Set<String> exprFeeCodeSet = new HashSet<>();
 
@@ -58,6 +58,7 @@ public class SweItemAdjustHandler extends TreeDataHandler {
             throw new IllegalArgumentException("单价分析列表不能为空");
         }
 
+        // todo 可能会改成费用代号处理器，不能为空
         if(CollectionUtils.isEmpty(systemFeeCodeMapping)){
             throw new IllegalArgumentException("系统映射不能为空");
         }
@@ -78,7 +79,7 @@ public class SweItemAdjustHandler extends TreeDataHandler {
 
 
     /**
-     * 单价分析节点前置处理，先获取其feeExpr中包含的取费代号，以及获取已知值
+     * 单价分析节点前置处理，先获取其feeExpr中包含的费用代号，以及获取已知值
      *
      * @param node            当前操作节点
      * @param pendingTreeNode 待处理单价分析节点List
@@ -88,8 +89,8 @@ public class SweItemAdjustHandler extends TreeDataHandler {
     public <T extends TreeNode> void nodeProcessBefore(T node, List<T> pendingTreeNode) {
         CostAnalysePrice CostAnalysePrice = (CostAnalysePrice) node;
 
+        // 把feeCode费用代号保存到feeCodeSet
         String feeCode = CostAnalysePrice.getFeeCode();
-        // 把feeCode取费代号保存到feeCodeSet
         feeCodeSet.add(feeCode);
 
         // 如果该单价分析节点wmmId为0，feeExpr为具体的值，feeRate为具体工作量，freeAmount = feeExpr * feeRate
@@ -104,12 +105,12 @@ public class SweItemAdjustHandler extends TreeDataHandler {
 
         // 如果如果该单价分析节点wmmId为-1，feeExpr为计算方程式或为空，需要进行拆解，方程式由数字及英文字符串和( ) + - * /构成
         if (null != CostAnalysePrice.getWmmId() && CostAnalysePrice.getWmmId().equals(-1L)) {
-            // 如果feeExpr非空，获取公式中包含的取费代号
+            // 如果feeExpr非空，获取公式中包含的费用代号
             if (StringUtils.isNotBlank(CostAnalysePrice.getFeeExpr())) {
                 // todo 是否除了数字、英文、_ 以为的费用代号组成
                 Matcher matcher = compile.matcher(CostAnalysePrice.getFeeExpr());
                 while (matcher.find()) {
-                    // 把公式中包含的取费代号保存到exprFeeCodeSet
+                    // 把公式中包含的费用代号保存到exprFeeCodeSet
                     exprFeeCodeSet.add(matcher.group());
                 }
                 return;
@@ -119,7 +120,7 @@ public class SweItemAdjustHandler extends TreeDataHandler {
             BigDecimal bigDecimal = BigDecimal.ZERO;
             if (!BigDecimal.ZERO.equals(CostAnalysePrice.getFeeAmount())) {
                 // todo 这里需要详细补充系统代号处理器的处理逻辑？
-                // 如果总价非空，先从系统取费代号映射Map中获取对应值，如果任然为空，赋值freeAmount为0，并保存到feeCodeMapping
+                // 如果总价非空，先从系统费用代号映射Map中获取对应值，如果任然为空，赋值freeAmount为0，并保存到feeCodeMapping
                 bigDecimal = null == systemFeeCodeMapping.get(feeCode) ? bigDecimal : systemFeeCodeMapping.get(feeCode);
             }
             CostAnalysePrice.setFeeAmount(bigDecimal);
@@ -158,19 +159,19 @@ public class SweItemAdjustHandler extends TreeDataHandler {
     }
 
     /**
-     * 在转换单价分析树形结构的前置业务处理，准备取费代号
+     * 在转换单价分析树形结构的前置业务处理，准备费用代号
      * @param pendingTreeNode 待处理单价分析节点List
      * @param <T> 待处理单价分析节点
      */
     @Override
     public <T extends TreeNode> void treeProcessBefore(List<T> pendingTreeNode) {
-        // 过滤出exprFeeCodeSet中独有的取费代号
+        // 过滤出exprFeeCodeSet中独有的费用代号
         Set<String> unknownfeeCodeSet = exprFeeCodeSet.stream()
                 .filter(exprFeeCode -> !feeCodeSet.contains(exprFeeCode))
                 .collect(Collectors.toSet());
 
-        // todo 如果系统取费代号Map中不存在，需要怎么处理
-        // 从系统取费代号映射Map中获取对应值，保存到feeCodeMapping中
+        // todo 如果系统费用代号Map中不存在，需要怎么处理
+        // 从系统费用代号映射Map中获取对应值，保存到feeCodeMapping中
         unknownfeeCodeSet.forEach(unknownfeeCode -> feeCodeMapping.put(unknownfeeCode, systemFeeCodeMapping.get(unknownfeeCode)));
     }
 

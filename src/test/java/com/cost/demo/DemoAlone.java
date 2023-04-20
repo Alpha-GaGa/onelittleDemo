@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 public class DemoAlone {
 
     /**
-     * feeExpr中取费代号Set
+     * feeExpr中费用代号Set
      */
     private final Set<String> exprFeeCodeSet = new HashSet<>();
 
@@ -26,7 +26,7 @@ public class DemoAlone {
     public void test(){
 
         String feeExpr = "114514.4";
-        // 如果feeExpr非空，获取公式中包含的取费代号
+        // 如果feeExpr非空，获取公式中包含的费用代号
         if (StringUtils.isNotBlank(feeExpr)) {
             // 如果是不是纯数字
             if( feeExpr.matches("[a-zA-Z_]+")){
@@ -34,7 +34,7 @@ public class DemoAlone {
                 Matcher matcher = compile.matcher(feeExpr);
                 while (matcher.find()) {
                     System.out.println("进该方法一次");
-                    // 把公式中包含的取费代号保存到exprFeeCodeSet
+                    // 把公式中包含的费用代号保存到exprFeeCodeSet
                     exprFeeCodeSet.add(matcher.group());
                 }
                 return;

@@ -5,6 +5,7 @@ import com.cost.domain.common.TreeNode;
 import lombok.Data;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 单价分析表
@@ -14,12 +15,12 @@ import java.math.BigDecimal;
  * @date 2023-03-30 10:19:57
  */
 @Data
-public class CostAnalysePrice extends TreeNode {
+public class CostAnalysePrice implements TreeNode<CostAnalysePrice> {
 
 	/**
 	 * ID
 	 */
-	//private Long id;
+	private Long id;
 	/**
 	 * 建设路线id
 	 */
@@ -31,7 +32,7 @@ public class CostAnalysePrice extends TreeNode {
 	/**
 	 * 父节点ID
 	 */
-	//private Long parentId;
+	private Long parentId;
 	/**
 	 * 分部分项id
 	 */
@@ -125,5 +126,10 @@ public class CostAnalysePrice extends TreeNode {
 	 */
 	private String status;
 
-	//private List<CostAnalysePrice> childList;
+	/**
+	 * 子集
+	 */
+	private List<CostAnalysePrice> children;
+
+
 }
