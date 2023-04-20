@@ -1,7 +1,9 @@
-package com.cost;
+package com.cost.handler;
 
-import com.cost.domain.CostAnalysePrice;
+import com.cost.domain.wrapper.AnalysePriceWrapper;
 import com.cost.domain.common.TreeNode;
+import com.cost.domain.wrapper.SweAdjustWrapper;
+import com.cost.domain.wrapper.SweFeeCodeWrapper;
 import com.cost.util.CalculateUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -20,12 +22,17 @@ import java.util.stream.Collectors;
  * @version
  */
 @Slf4j
-public class SweItemAdjustHandlerI extends ITreeDataHandler {
+public class SweItemAnalysisHandler extends BasicsTreeBuilder implements AnalysisHandler<AnalysePriceWrapper> {
 
     /**
      * 系统费用代号映射Map
      */
-    private Map<String, BigDecimal> systemFeeCodeMapping;
+    private FeeCodeMatchHandler feeCodeMatchHandler;
+
+    /**
+     *
+     */
+    private SweAdjustWrapper adjustWrapper;
 
     /**
      * 费用代号映射Map
@@ -53,21 +60,19 @@ public class SweItemAdjustHandlerI extends ITreeDataHandler {
     public static final  Pattern compile = Pattern.compile("[a-zA-Z0-9_]+");
 
 
-    public List<CostAnalysePrice> getTree(List<CostAnalysePrice> costAnalysePriceList, HashMap<String, BigDecimal> systemFeeCodeMapping){
-        if(CollectionUtils.isEmpty(costAnalysePriceList)){
+    /**
+     *
+     * @param analysePriceWrapperList
+     * @return
+     */
+    @Override
+    public List<AnalysePriceWrapper> analysis(List<AnalysePriceWrapper> analysePriceWrapperList, SweAdjustWrapper adjustWrapper, FeeCodeMatchHandler feeCodeMatchHandler){
+        if(CollectionUtils.isEmpty(analysePriceWrapperList)){
             throw new IllegalArgumentException("单价分析列表不能为空");
         }
 
-        // todo 可能会改成费用代号处理器，不能为空
-        if(CollectionUtils.isEmpty(systemFeeCodeMapping)){
-            throw new IllegalArgumentException("系统映射不能为空");
-        }
-
-        this.systemFeeCodeMapping = systemFeeCodeMapping;
-
         try {
-            return super.getTree(costAnalysePriceList);
-
+            return super.getTree(analysePriceWrapperList);
             // todo 需要做处理
         } catch (InstantiationException e) {
             throw new RuntimeException(e);
@@ -87,28 +92,28 @@ public class SweItemAdjustHandlerI extends ITreeDataHandler {
      */
     @Override
     public <T extends TreeNode> void nodeProcessBefore(T node, List<T> pendingTreeNode) {
-        CostAnalysePrice CostAnalysePrice = (CostAnalysePrice) node;
+        AnalysePriceWrapper AnalysePriceWrapper = (AnalysePriceWrapper) node;
 
         // 把feeCode费用代号保存到feeCodeSet
-        String feeCode = CostAnalysePrice.getFeeCode();
+        String feeCode = AnalysePriceWrapper.getFeeCode();
         feeCodeSet.add(feeCode);
 
         // 如果该单价分析节点wmmId为0，feeExpr为具体的值，feeRate为具体工作量，freeAmount = feeExpr * feeRate
-        if (null != CostAnalysePrice.getWmmId() && CostAnalysePrice.getWmmId().equals(0L)) {
-            BigDecimal FeeExpr = new BigDecimal(CostAnalysePrice.getFeeExpr());
-            BigDecimal freeAmount = FeeExpr.multiply(CostAnalysePrice.getFeeRate());
-            CostAnalysePrice.setFeeAmount(freeAmount);
+        if (null != AnalysePriceWrapper.getWmmId() && AnalysePriceWrapper.getWmmId().equals(0L)) {
+            BigDecimal FeeExpr = new BigDecimal(AnalysePriceWrapper.getFeeExpr());
+            BigDecimal freeAmount = FeeExpr.multiply(AnalysePriceWrapper.getFeeRate());
+            AnalysePriceWrapper.setFeeAmount(freeAmount);
             // 把feeCode对应的价格保存到feeCodeMapping
             feeCodeMapping.put(feeCode, freeAmount);
             return;
         }
 
         // 如果如果该单价分析节点wmmId为-1，feeExpr为计算方程式或为空，需要进行拆解，方程式由数字及英文字符串和( ) + - * /构成
-        if (null != CostAnalysePrice.getWmmId() && CostAnalysePrice.getWmmId().equals(-1L)) {
+        if (null != AnalysePriceWrapper.getWmmId() && AnalysePriceWrapper.getWmmId().equals(-1L)) {
             // 如果feeExpr非空，获取公式中包含的费用代号
-            if (StringUtils.isNotBlank(CostAnalysePrice.getFeeExpr())) {
+            if (StringUtils.isNotBlank(AnalysePriceWrapper.getFeeExpr())) {
                 // todo 是否除了数字、英文、_ 以为的费用代号组成
-                Matcher matcher = compile.matcher(CostAnalysePrice.getFeeExpr());
+                Matcher matcher = compile.matcher(AnalysePriceWrapper.getFeeExpr());
                 while (matcher.find()) {
                     // 把公式中包含的费用代号保存到exprFeeCodeSet
                     exprFeeCodeSet.add(matcher.group());
@@ -118,12 +123,14 @@ public class SweItemAdjustHandlerI extends ITreeDataHandler {
 
             // 如果feeExpr为空
             BigDecimal bigDecimal = BigDecimal.ZERO;
-            if (!BigDecimal.ZERO.equals(CostAnalysePrice.getFeeAmount())) {
+            if (!BigDecimal.ZERO.equals(AnalysePriceWrapper.getFeeAmount())) {
                 // todo 这里需要详细补充系统代号处理器的处理逻辑？
                 // 如果总价非空，先从系统费用代号映射Map中获取对应值，如果任然为空，赋值freeAmount为0，并保存到feeCodeMapping
+                new
+                feeCodeMatchHandler.match()
                 bigDecimal = null == systemFeeCodeMapping.get(feeCode) ? bigDecimal : systemFeeCodeMapping.get(feeCode);
             }
-            CostAnalysePrice.setFeeAmount(bigDecimal);
+            AnalysePriceWrapper.setFeeAmount(bigDecimal);
             feeCodeMapping.put(feeCode, bigDecimal);
         }
 
@@ -138,10 +145,10 @@ public class SweItemAdjustHandlerI extends ITreeDataHandler {
      */
     @Override
     public <T extends TreeNode> void nodeProcessAfter(T node, Map<Long, List<T>> groupByParentId) {
-        CostAnalysePrice CostAnalysePrice = (CostAnalysePrice) node;
+        AnalysePriceWrapper AnalysePriceWrapper = (AnalysePriceWrapper) node;
 
         // 如果当前节点的费用不为空，证明已经计算完成，直接返回
-        if(null != CostAnalysePrice.getFeeAmount()) {
+        if(null != AnalysePriceWrapper.getFeeAmount()) {
             return;
         }
 
@@ -149,13 +156,13 @@ public class SweItemAdjustHandlerI extends ITreeDataHandler {
         //BigDecimal bigDecimal1 = CalculateUtils.calculateByAviator(CostAnalysePrice.getFeeExpr(), feeCodeMapping);
 
         // 使用calculateByJexl计算表达式
-        BigDecimal bigDecimal1 = CalculateUtils.calculateByJexl(CostAnalysePrice.getFeeExpr(), feeCodeMapping);
+        BigDecimal bigDecimal1 = CalculateUtils.calculateByJexl(AnalysePriceWrapper.getFeeExpr(), feeCodeMapping);
 
 
         // 把计算值赋值为freeAmount，并保存到feeCodeMapping
-        CostAnalysePrice.setFeeAmount(bigDecimal1);
+        AnalysePriceWrapper.setFeeAmount(bigDecimal1);
         // todo 是否要考虑有相同的key情况
-        feeCodeMapping.put(CostAnalysePrice.getFeeCode(), bigDecimal1);
+        feeCodeMapping.put(AnalysePriceWrapper.getFeeCode(), bigDecimal1);
     }
 
     /**
@@ -184,5 +191,10 @@ public class SweItemAdjustHandlerI extends ITreeDataHandler {
     @Override
     public <T extends TreeNode> void treeProcessbeAfter(List<T> nodeList, Map<Long, List<T>> groupByParentId) {
 
+    }
+
+    @Override
+    public void setFeeCodeHandler(FeeCodeMatchHandler feeCodeMatchHandler) {
+        this.feeCodeMatchHandler = feeCodeMatchHandler
     }
 }

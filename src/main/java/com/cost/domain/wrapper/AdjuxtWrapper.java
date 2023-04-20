@@ -1,23 +1,32 @@
-package com.cost.domain.common;
+package com.cost.domain.wrapper;
+
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
- * @description 费用代号对应的子目/最下层指标/清单数据封装类
+ * @description 指标/子目调差封装类
  * @Created zhangtianhao
- * @date 2023-04-20 09:41
+ * @date 2023-04-18 18:30
+ * @version
  */
-public interface FeeCodeItemWrapper {
+public interface AdjuxtWrapper {
 
     /**
-     * 获取封装数据所属名字
-     * @return 封装数据所属名字
+     * 获取费用代号
+     * @return
      */
-    String getName();
+    String getFeeCode();
 
     /**
-     * 获取封装数据所属类型
-     * @return 封装数据所属类型
+     * 获取费用名称
+     * @return
+     */
+    String getFeeName();
+
+    /**
+     * 获取封装数据类型(0子目 1最下层指标/清单 2清单法)
+     * @return
      */
     String getType();
 
@@ -117,5 +126,9 @@ public interface FeeCodeItemWrapper {
      */
     String getExpandInfo();
 
-
+    /**
+     * 获取封装数据子集
+     * @return
+     */
+    <T extends AdjuxtWrapper> List<T> getChildList();
 }

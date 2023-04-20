@@ -1,4 +1,4 @@
-package com.cost;
+package com.cost.handler;
 
 
 import com.cost.domain.common.TreeNode;
@@ -10,13 +10,13 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * @description 树形数据处理器
+ * @description 基础树形数据构造器
  * @Created zhangtianhao
  * @date 2023-04-07 10:57
  * @version
  */
 @Slf4j
-public abstract class ITreeDataHandler {
+public abstract class BasicsTreeBuilder implements TreeBuilder {
 
     /**
      *  将List数据转换成树形结构
@@ -62,7 +62,7 @@ public abstract class ITreeDataHandler {
      * @return 完成操作的节点
      * @param <T> 待操作数据类型
      */
-    private final <T extends TreeNode> T buildTree(T node, Map<Long, List<T>> groupByParentId){
+    public final <T extends TreeNode> T buildTree(T node, Map<Long, List<T>> groupByParentId){
         // 从groupByParentId中获取当前节点的子节点列表
         List<T> childList = groupByParentId.get(node.getId());
         if (!CollectionUtils.isEmpty(childList)) {

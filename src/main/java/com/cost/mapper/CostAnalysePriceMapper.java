@@ -1,6 +1,6 @@
 package com.cost.mapper;
 
-import com.cost.domain.CostAnalysePrice;
+import com.cost.domain.wrapper.AnalysePriceWrapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -14,6 +14,6 @@ public interface CostAnalysePriceMapper {
      * @param
      * @return
      */
-    List<CostAnalysePrice> selectCostAnalysePriceList(@Param("itemId")Long itemId);
+    List<AnalysePriceWrapper> selectCostAnalysePriceList(@Param("itemId")Long itemId);
 
 }

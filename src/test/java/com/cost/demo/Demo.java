@@ -1,9 +1,9 @@
 package com.cost.demo;
 
 import com.cost.DemoApplication;
-import com.cost.SweIndexAdjustHandlerI;
-import com.cost.SweItemAdjustHandlerI;
-import com.cost.domain.CostAnalysePrice;
+import com.cost.domain.wrapper.AnalysePriceWrapper;
+import com.cost.handler.SweIndexAnalysisHandler;
+import com.cost.handler.SweItemAnalysisHandler;
 import com.cost.domain.CostFee;
 import com.cost.domain.CostItem;
 import com.cost.domain.CostWmm;
@@ -54,9 +54,9 @@ public class Demo {
         //
 
         // todo 获取对应itemId的单价分析
-        List<CostAnalysePrice> costAnalysePriceList = costAnalysePriceMapper.selectCostAnalysePriceList(25004L);
+        List<AnalysePriceWrapper> analysePriceWrapperList = costAnalysePriceMapper.selectCostAnalysePriceList(25004L);
         log.info("原始数据");
-        costAnalysePriceList.forEach(System.out::println);
+        analysePriceWrapperList.forEach(System.out::println);
 
 
         HashMap<String, BigDecimal>  map = new HashMap<>();
@@ -66,7 +66,7 @@ public class Demo {
         map.put("DJ5", new BigDecimal("120"));
 
         long begin = System.currentTimeMillis();
-        List<CostAnalysePrice> treeList = new SweItemAdjustHandlerI().getTree(costAnalysePriceList, map);
+        List<AnalysePriceWrapper> treeList = new SweItemAnalysisHandler().getTree(analysePriceWrapperList);
 
         log.info("计算数据,共用时：{}", System.currentTimeMillis() - begin);
         treeList.forEach(System.out::println);
@@ -99,7 +99,7 @@ public class Demo {
 
 
         // 获取对应的单价分析
-        List<CostAnalysePrice> costAnalysePriceList = costAnalysePriceMapper.selectCostAnalysePriceList(itemId);
+        List<AnalysePriceWrapper> analysePriceWrapperList = costAnalysePriceMapper.selectCostAnalysePriceList(itemId);
 
 
         HashMap<String, BigDecimal>  map = new HashMap<>();
@@ -113,7 +113,7 @@ public class Demo {
 
         // 代入计算
         long begin = System.currentTimeMillis();
-        List<CostAnalysePrice> treeList = new SweIndexAdjustHandlerI().getTree(costAnalysePriceList, map, itemList, costFeeList);
+        List<AnalysePriceWrapper> treeList = new SweIndexAnalysisHandler().getTree(analysePriceWrapperList, map, itemList, costFeeList);
 
         log.info("计算数据,共用时：{}", System.currentTimeMillis() - begin);
         treeList.forEach(System.out::println);

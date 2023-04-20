@@ -1,7 +1,8 @@
-package com.cost.domain.common;
+package com.cost.domain.wrapper;
 
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * @description 费用代号处理对象
@@ -9,7 +10,7 @@ import java.math.BigDecimal;
  * @date 2023-04-18 18:30
  * @version
  */
-public interface FeeCodeEntity {
+public interface FeeCodeWrapper {
 
     /**
      * 获取费用代号
@@ -129,5 +130,5 @@ public interface FeeCodeEntity {
      * 获取封装数据子集
      * @return
      */
-    List<T> getChildList();
+    <T extends FeeCodeWrapper> List<T> getChildList();
 }

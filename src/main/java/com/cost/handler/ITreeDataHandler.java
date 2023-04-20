@@ -1,4 +1,4 @@
-package com.cost;
+package com.cost.handler;
 
 import com.cost.domain.common.TreeNode;
 
@@ -10,7 +10,7 @@ import java.util.function.Function;
  *
  * @param <T> 待处理数据类型
  */
-public interface TreeDataHandler<T extends TreeNode> {
+public interface ITreeDataHandler<T extends TreeNode> {
 
     /**
      * 将List数据转换成树形结构
@@ -22,10 +22,10 @@ public interface TreeDataHandler<T extends TreeNode> {
         // 在转换树形结构前的业务处理
 
         // 构建树
-        Object result = buildTree(pendingTreeNode, convertToTree(pendingTreeNode));
+        //Object result = buildTree(pendingTreeNode, convertToTree(pendingTreeNode));
 
         // 在转换树形结构后的业务处理
-        return result;
+        return null;
     }
 
     /**
