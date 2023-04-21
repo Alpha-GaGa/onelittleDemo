@@ -8,17 +8,17 @@ package com.cost.constant;
  */
 public interface FeeCodeConditionalActionOnConstant {
     /**
-     * 直接取值
+     * 作用父类
      */
     String PARENT = "0";
 
     /**
-     * 计算取值
+     * 作用自己
      */
     String SELF = "1";
 
     /**
-     * 筛选累加
+     * 作用子类
      */
     String CHILD = "2";
 }

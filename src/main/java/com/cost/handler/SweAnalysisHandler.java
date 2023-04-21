@@ -2,14 +2,12 @@ package com.cost.handler;
 
 import com.cost.constant.FeeCodeScopeConstant;
 import com.cost.constant.WmmNameConstant;
-import com.cost.domain.wrapper.AnalysePriceWrapper;
 import com.cost.domain.common.TreeNode;
+import com.cost.domain.wrapper.AnalysePriceWrapper;
 import com.cost.domain.wrapper.SweAdjustWrapper;
 import com.cost.domain.wrapper.SweFeeCodeWrapper;
 import com.cost.enums.FileTypeCacheKeyEnum;
 import com.cost.util.CalculateUtils;
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 
@@ -18,14 +16,13 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 /**
- * @description 子目计算处理器
+ * @description 斯维尔单价分析处理器
  * @Created zhangtianhao
  * @date 2023-04-10 15:47
  */
-@Slf4j
-@AllArgsConstructor
-public class SweItemAnalysisHandler extends BasicsTreeBuilder implements AnalysisHandler<AnalysePriceWrapper> {
+public abstract class SweAnalysisHandler  extends BasicsTreeBuilder implements AnalysisHandler<AnalysePriceWrapper> {
 
     /**
      * 系统费用代号映射Map
@@ -244,5 +241,20 @@ public class SweItemAnalysisHandler extends BasicsTreeBuilder implements Analysi
                 feeCodeMapping.put(unknowfeeCode, analysisFeeCode(AnalysePriceWrapperMapping.get(unknowfeeCode)));
             }
         });
+    }
+
+    /**
+     * @param nodeList        单价分析树形结构数据集合
+     * @param groupByParentId 按照parentId分组单价分析节点Map集合
+     * @param <T>             单价分析树形结构数据
+     */
+    @Override
+    public <T extends TreeNode> void treeProcessbeAfter(List<T> nodeList, Map<Long, List<T>> groupByParentId) {
+
+    }
+
+    @Override
+    public void setFeeCodeHandler(FeeCodeMatchHandler feeCodeMatchHandler) {
+        this.feeCodeMatchHandler = feeCodeMatchHandler;
     }
 }

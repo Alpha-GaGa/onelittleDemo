@@ -4,14 +4,14 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
- * @description 文件来源类型对应Rediskey枚举类
+ * @description 文件来源类型对应cacheKey枚举类
  * @Created zhangtianhao
  * @date 2023-04-20 17:12
  * @version
  */
 @Getter
 @AllArgsConstructor
-public enum FileTypeRedisKeyEnum {
+public enum FileTypeCacheKeyEnum {
     /**
      * 自定义数据文件
      */
@@ -30,10 +30,10 @@ public enum FileTypeRedisKeyEnum {
     /**
      * 文件来源类型对应Rediskey
      */
-    private String redisKey;
+    private String cacheKey;
 
-    public static FileTypeRedisKeyEnum getByFileType(String fileType){
-        for (FileTypeRedisKeyEnum item : values()) {
+    public static FileTypeCacheKeyEnum getByFileType(String fileType){
+        for (FileTypeCacheKeyEnum item : values()) {
             if (item.getFileType().equals(fileType)) {
                 return item;
             }

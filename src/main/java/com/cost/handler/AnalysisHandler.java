@@ -16,11 +16,9 @@ public interface AnalysisHandler<T extends TreeNode> {
     /**
      *
      * @param pendingTreeNode
-     * @param adjustWrapper
-     * @param feeCodeMatchHandler
      * @return
      */
-    List<T> analysis(List<T> pendingTreeNode, SweAdjustWrapper adjustWrapper, FeeCodeMatchHandler feeCodeMatchHandler);
+    List<T> analysis(List<T> pendingTreeNode);
 
     /**
      * 设置费用代号处理器

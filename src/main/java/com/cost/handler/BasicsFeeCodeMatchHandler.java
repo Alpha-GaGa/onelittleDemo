@@ -5,6 +5,7 @@ import com.cost.constant.FeeCodeConditionalTypeConstant;
 import com.cost.constant.FeeCodeScopeConstant;
 import com.cost.domain.SysFeeCodeDTO;
 import com.cost.domain.common.FeeCodeConditional;
+import com.cost.domain.wrapper.SweAdjustWrapper;
 import com.cost.domain.wrapper.SweFeeCodeWrapper;
 import com.cost.util.CalculateUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -146,7 +147,8 @@ public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler{
             case FeeCodeScopeConstant.INDEX:
                 return getValue(item, fieldName).multiply(
                         Optional.ofNullable(item)
-                                .map(SweFeeCodeWrapper::getQuantity)
+                                .map(SweFeeCodeWrapper::getAdjustWrapper)
+                                .map(SweAdjustWrapper::getQuantity)
                                 .orElseThrow(() -> new RuntimeException("费用代号处理器处理最下层指标/清单时，item对象工作量为空"))
                 );
             default:

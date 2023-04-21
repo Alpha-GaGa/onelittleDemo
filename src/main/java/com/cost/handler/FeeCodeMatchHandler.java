@@ -1,11 +1,9 @@
 package com.cost.handler;
 
 import com.cost.domain.SysFeeCodeDTO;
-import com.cost.domain.wrapper.FeeCodeWrapper;
 import com.cost.domain.wrapper.SweFeeCodeWrapper;
 
 import java.math.BigDecimal;
-import java.util.Map;
 
 /**
  * @description 费用代号分析处理器接口
@@ -29,16 +27,5 @@ public interface FeeCodeMatchHandler {
      * @return 返回分析出来的结果
      */
     BigDecimal analysis(SweFeeCodeWrapper feeCodeWrapper, SysFeeCodeDTO sysFeeCodeDTO);
-
-    /**
-     * 设置系统公用费用代号映射Map
-     * @param sysCommonFeeCodeMapping 系统公用费用代号映射Map
-     */
-    void setSysCommonFeeCodeMapping(Map<String, SysFeeCodeDTO> sysCommonFeeCodeMapping);
-
-    /**
-     * 清楚处理器内缓存
-     */
-    void clean();
 
 }

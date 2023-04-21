@@ -90,6 +90,17 @@
             <artifactId>cost-common-redis</artifactId>
             <version>1.0.0</version>
         </dependency>
+
+        <!--springCache-->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-cache</artifactId>
+        </dependency>
+        <!--caffeine本地缓存-->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
     </dependencies>
 
 </project>

@@ -1,12 +1,12 @@
 package com.cost.factory;
 
-import com.cost.enums.FileTypeRedisKeyEnum;
+import com.cost.enums.FileTypeCacheKeyEnum;
 import com.cost.handler.FeeCodeMatchHandler;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import static com.cost.enums.FileTypeRedisKeyEnum.SWE;
+import static com.cost.enums.FileTypeCacheKeyEnum.SWE;
 
 /**
  * @description 单价分析处理器工厂
@@ -22,7 +22,7 @@ public class AnalysisHandlerFactory {
     private FeeCodeHandlerFactory feeCodeHandlerFactory;
 
     public FeeCodeMatchHandler getAdjustHandler(String fileType) {
-        switch (FileTypeRedisKeyEnum.getByFileType(fileType)) {
+        switch (FileTypeCacheKeyEnum.getByFileType(fileType)) {
             // 处理自定义数据文件
             case SELF:
                 return null;
@@ -36,9 +36,9 @@ public class AnalysisHandlerFactory {
 
     /**
      *
-     * @param fileTypeRedisKeyEnum
+     * @param fileTypeCacheKeyEnum
      */
-    private FeeCodeMatchHandler initAdjustHandler(FileTypeRedisKeyEnum fileTypeRedisKeyEnum) {
+    private FeeCodeMatchHandler initAdjustHandler(FileTypeCacheKeyEnum fileTypeCacheKeyEnum) {
 
     }
 }

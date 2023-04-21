@@ -1,5 +1,6 @@
 package com.cost.domain.wrapper;
 
+import com.cost.enums.FileTypeCacheKeyEnum;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -35,6 +36,11 @@ public class SweFeeCodeWrapper{
     private String type;
 
     /**
+     * 文件来源类型对应cacheKey枚举类
+     */
+    private FileTypeCacheKeyEnum fileTypeCacheKeyEnum;
+
+    /**
      * 斯维尔指标/子目调差封装类
      */
     private SweAdjustWrapper adjustWrapper;
@@ -45,5 +51,16 @@ public class SweFeeCodeWrapper{
      */
     private BigDecimal adjustBeforePrice;
 
+    @Override
+    public String toString() {
+        return "SweFeeCodeWrapper{" +
+                "feeCode='" + feeCode + '\'' +
+                ", feeName='" + feeName + '\'' +
+                ", feeDocId=" + feeDocId +
+                ", type='" + type + '\'' +
+                ", fileType=" + fileTypeCacheKeyEnum.getFileType() +
+                ", adjustBeforePrice=" + adjustBeforePrice +
+                '}';
+    }
 }
 

@@ -4,6 +4,7 @@ import com.cost.domain.wrapper.AnalysePriceWrapper;
 import com.cost.domain.CostItem;
 import com.cost.domain.CostFee;
 import com.cost.domain.common.TreeNode;
+import com.cost.domain.wrapper.SweAdjustWrapper;
 import com.cost.util.CalculateUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -21,22 +22,28 @@ import java.util.stream.Collectors;
  * @date 2023-04-10 15:47
  */
 @Slf4j
-public class SweIndexAnalysisHandler extends BasicsTreeBuilder {
+public class SweIndexAnalysisHandler extends SweAnalysisHandler {
 
     /**
      * 系统费用代号映射Map
      */
-    private Map<String, BigDecimal> systemFeeCodeMapping;
+    private FeeCodeMatchHandler feeCodeMatchHandler;
 
     /**
-     * 取费文件表
+     * 斯维尔指标/子目调差封装类
      */
-    private Map<String, CostFee> costFeeMapping;
+    private SweAdjustWrapper adjustWrapper;
 
     /**
-     * 子目列表
+     * 取费文件id
      */
-    private List<CostItem> costItemList;
+    private Long feeDocId;
+
+    /**
+     * 费用代号对应AnalysePriceWrapperMapping
+     */
+    private final Map<String, AnalysePriceWrapper> AnalysePriceWrapperMapping = new HashMap<>();
+
 
     /**
      * 费用代号映射Map
@@ -54,16 +61,6 @@ public class SweIndexAnalysisHandler extends BasicsTreeBuilder {
     private final Set<String> exprFeeCodeSet = new HashSet<>();
 
     /**
-     * 100
-     */
-    public static final BigDecimal ONE_HUNDRED = new BigDecimal("100");
-
-    /**
-     * 独立费标识
-     */
-    public static final String  INDEPENDENT_FEE_STR = "独立费";
-
-    /**
      * 特殊费用标识
      */
     public static final String  CSGD_DELX = "[CSGD_DELX]";
@@ -73,41 +70,7 @@ public class SweIndexAnalysisHandler extends BasicsTreeBuilder {
      */
     public static final Pattern compile = Pattern.compile("[a-zA-Z0-9_]+");
 
-
-    public List<AnalysePriceWrapper> getTree(List<AnalysePriceWrapper> analysePriceWrapperList, HashMap<String, BigDecimal> systemFeeCodeMapping, List<CostItem> costItemList, List<CostFee> costFeeList) {
-        if (CollectionUtils.isEmpty(analysePriceWrapperList)) {
-            throw new IllegalArgumentException("费用组成列表不能为空");
-        }
-
-        if (CollectionUtils.isEmpty(systemFeeCodeMapping)) {
-            throw new IllegalArgumentException("系统映射不能为空");
-        }
-
-        if (CollectionUtils.isEmpty(costItemList)) {
-            throw new IllegalArgumentException("下层子目不能为空");
-        }
-
-        if (CollectionUtils.isEmpty(costFeeList)) {
-            throw new IllegalArgumentException("取费文件不能为空");
-        }
-
-        costFeeMapping = new HashMap<String, CostFee>();
-        costFeeList.forEach(costFee -> costFeeMapping.put(costFee.getFeeCode(), costFee));
-
-        this.systemFeeCodeMapping = systemFeeCodeMapping;
-
-        try {
-            return super.getTree(analysePriceWrapperList);
-
-            // todo 需要做处理
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-
+    
     /**
      * 单价分析节点前置处理，先获取其feeExpr中包含的费用代号，以及获取已知值
      *
@@ -123,8 +86,8 @@ public class SweIndexAnalysisHandler extends BasicsTreeBuilder {
         // 把feeCode费用代号保存到feeCodeSet
         feeCodeSet.add(feeCode);
 
-        // 如果该单价分析节点wmmId为0，feeExpr为具体的值，feeRate为具体工作量，freeAmount = feeExpr * feeRate
-        if (null != AnalysePriceWrapper.getWmmId() && AnalysePriceWrapper.getWmmId().equals(0L)) {
+        // 如果该单价分析节点WmmName为0，feeExpr为具体的值，feeRate为具体工作量，freeAmount = feeExpr * feeRate
+        if (null != AnalysePriceWrapper.getWmmName() && AnalysePriceWrapper.getWmmName().equals(0L)) {
             BigDecimal FeeExpr = new BigDecimal(AnalysePriceWrapper.getFeeExpr());
             BigDecimal freeAmount = FeeExpr.multiply(AnalysePriceWrapper.getFeeRate());
             AnalysePriceWrapper.setFeeAmount(freeAmount);
@@ -133,8 +96,8 @@ public class SweIndexAnalysisHandler extends BasicsTreeBuilder {
             return;
         }
 
-        // 如果如果该单价分析节点wmmId为-1，feeExpr为计算方程式或为空，需要进行拆解，方程式由数字及英文字符串和( ) + - * /构成
-        if (null != AnalysePriceWrapper.getWmmId() && AnalysePriceWrapper.getWmmId().equals(-1L)) {
+        // 如果如果该单价分析节点WmmName为-1，feeExpr为计算方程式或为空，需要进行拆解，方程式由数字及英文字符串和( ) + - * /构成
+        if (null != AnalysePriceWrapper.getWmmName() && AnalysePriceWrapper.getWmmName().equals(-1L)) {
             // 如果feeExpr非空，并且不是纯数字，获取公式中包含的费用代号
             if (StringUtils.isNotBlank(AnalysePriceWrapper.getFeeExpr()) && !AnalysePriceWrapper.getFeeExpr().matches("[\\d.]+")) {
                     // todo 是否除了数字、英文、_ 以为的费用代号组成
@@ -191,34 +154,7 @@ public class SweIndexAnalysisHandler extends BasicsTreeBuilder {
             feeCodeMapping.put(feeCode, feeAmount);
         }
 
-        // todo 如果wmmId为空，或者不为0或-1，需要怎么处理
-    }
-
-    /**
-     * @param node            当前操作节点
-     * @param groupByParentId 按照parentId分组单价分析节点Map集合
-     * @param <T>             待处理单价分析节点
-     */
-    @Override
-    public <T extends TreeNode> void nodeProcessAfter(T node, Map<Long, List<T>> groupByParentId) {
-        AnalysePriceWrapper AnalysePriceWrapper = (AnalysePriceWrapper) node;
-
-        // 如果当前节点的费用不为空，证明已经计算完成，直接返回
-        if (null != AnalysePriceWrapper.getFeeAmount()) {
-            return;
-        }
-
-        // 使用Aviator计算表达式
-        //BigDecimal bigDecimal1 = CalculateUtils.calculateByAviator(CostAnalysePrice.getFeeExpr(), feeCodeMapping);
-
-        // 使用calculateByJexl计算表达式
-        BigDecimal bigDecimal1 = CalculateUtils.calculateByJexl(AnalysePriceWrapper.getFeeExpr(), feeCodeMapping);
-
-
-        // 把计算值赋值为freeAmount，并保存到feeCodeMapping
-        AnalysePriceWrapper.setFeeAmount(bigDecimal1);
-        // todo 是否要考虑有相同的key情况
-        feeCodeMapping.put(AnalysePriceWrapper.getFeeCode(), bigDecimal1);
+        // todo 如果WmmName为空，或者不为0或-1，需要怎么处理
     }
 
     /**
@@ -248,13 +184,4 @@ public class SweIndexAnalysisHandler extends BasicsTreeBuilder {
         });
     }
 
-    /**
-     * @param nodeList        单价分析树形结构数据集合
-     * @param groupByParentId 按照parentId分组单价分析节点Map集合
-     * @param <T>             单价分析树形结构数据
-     */
-    @Override
-    public <T extends TreeNode> void treeProcessbeAfter(List<T> nodeList, Map<Long, List<T>> groupByParentId) {
-
-    }
 }
