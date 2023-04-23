@@ -6,7 +6,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * @description 斯维尔指标/子目调差封装类
+ * @description 指标/子目调差封装类
  * @Created zhangtianhao
  * @date 2023-04-20 20:31
  * @version
@@ -141,5 +141,5 @@ public class SweAdjustWrapper {
     /**
      * 封装数据子集
      */
-    private List<SweFeeCodeWrapper> childList;
+    private List<SweAdjustWrapper> childList;
 }

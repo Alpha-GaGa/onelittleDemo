@@ -14,7 +14,7 @@ public interface CostItemMapper {
      * @param itemId
      * @return
      */
-    List<CostItem> selectCostItemListByItemId(@Param("itemId")Long itemId);
+    CostItem selectCostItemListByItemId(@Param("itemId")Long itemId);
 
     /**
      *

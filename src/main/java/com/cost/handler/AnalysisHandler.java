@@ -1,7 +1,6 @@
 package com.cost.handler;
 
 import com.cost.domain.common.TreeNode;
-import com.cost.domain.wrapper.SweAdjustWrapper;
 
 import java.util.List;
 
@@ -19,10 +18,4 @@ public interface AnalysisHandler<T extends TreeNode> {
      * @return
      */
     List<T> analysis(List<T> pendingTreeNode);
-
-    /**
-     * 设置费用代号处理器
-     * @param feeCodeMatchHandler 费用代号处理器
-     */
-    void setFeeCodeHandler(FeeCodeMatchHandler feeCodeMatchHandler);
 }

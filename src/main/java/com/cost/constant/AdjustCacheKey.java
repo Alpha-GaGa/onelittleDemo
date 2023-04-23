@@ -23,6 +23,11 @@ public class AdjustCacheKey {
     private static final String ADJUST_FEECODE = "adj_feeCode";
 
     /**
+     * 调差取费文件代号
+     */
+    private static final String ADJUST_COSTFEE = "adj_costFee";
+
+    /**
      * 冒号分隔符
      */
     private static final String COLON = ":";
@@ -86,14 +91,14 @@ public class AdjustCacheKey {
     }
 
     /**
-     * 获取FeeCodeRedisKey
+     * 获取费用代号缓存标识FeeCodeCacheKey
      * @param fileTypeCacheKeyEnum 文件来源类型对应cacheKey枚举类
      * @param feeDocId 取费文件Id
      * @return
      */
     public AdjustCacheKey feeCodeCacheKey(FileTypeCacheKeyEnum fileTypeCacheKeyEnum, Long feeDocId) {
         if (null == fileTypeCacheKeyEnum || null == feeDocId) {
-            throw new RuntimeException("生成FeeCodeRedisKey时fileTypeRedisKeyEnum和feeDocId不能为空");
+            throw new RuntimeException("生成FeeCodeCacheKey时fileTypeRedisKeyEnum和feeDocId不能为空");
         }
         // 保存到值到成员变量
         this.feeDocId = feeDocId;
@@ -101,6 +106,30 @@ public class AdjustCacheKey {
 
         // 组装cacheKey
         adjustCacheKey.append(ADJUST_FEECODE)
+                .append(COLON)
+                .append(fileTypeCacheKeyEnum.getCacheKey())
+                .append(COLON)
+                .append(feeDocId);
+
+        return this;
+    }
+
+    /**
+     * 获取取费文件缓存标识CosFeeeCacheKey
+     * @param fileTypeCacheKeyEnum 文件来源类型对应cacheKey枚举类
+     * @param feeDocId 取费文件Id
+     * @return
+     */
+    public AdjustCacheKey cosFeeeCacheKey(FileTypeCacheKeyEnum fileTypeCacheKeyEnum, Long feeDocId) {
+        if (null == fileTypeCacheKeyEnum || null == feeDocId) {
+            throw new RuntimeException("生成CosFeeeCacheKey时fileTypeRedisKeyEnum和feeDocId不能为空");
+        }
+        // 保存到值到成员变量
+        this.feeDocId = feeDocId;
+        this.FileTypeCacheKeyEnum = fileTypeCacheKeyEnum;
+
+        // 组装cacheKey
+        adjustCacheKey.append(ADJUST_COSTFEE)
                 .append(COLON)
                 .append(fileTypeCacheKeyEnum.getCacheKey())
                 .append(COLON)

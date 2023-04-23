@@ -1,7 +1,13 @@
 package com.cost.demo;
 
 import com.cost.DemoApplication;
+import com.cost.constant.FeeCodeScopeConstant;
+import com.cost.constant.FileTypeConstant;
+import com.cost.converter.AdjustWrapperConverter;
+import com.cost.domain.AnalysePrice;
 import com.cost.domain.wrapper.AnalysePriceWrapper;
+import com.cost.domain.wrapper.SweAdjustWrapper;
+import com.cost.factory.AnalysisHandlerFactory;
 import com.cost.handler.SweIndexAnalysisHandler;
 import com.cost.handler.SweItemAnalysisHandler;
 import com.cost.domain.CostFee;
@@ -18,6 +24,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -42,40 +49,46 @@ public class Demo {
     @Autowired
     CostFeeMapper costFeeMapper;
 
+    @Autowired
+    AnalysisHandlerFactory analysisHandlerFactory;
+
+    @Autowired
+    AdjustWrapperConverter adjustWrapperConverter;
+
     @Test
     public void testItem(){
 
-        // 获取子目关联工料机
-        CostWmm costWmm = new CostWmm();
-
-        // 计算工料机的信息单价
-
-
-        //
-
-        // todo 获取对应itemId的单价分析
-        List<AnalysePriceWrapper> analysePriceWrapperList = costAnalysePriceMapper.selectCostAnalysePriceList(25004L);
-        log.info("原始数据");
-        analysePriceWrapperList.forEach(System.out::println);
-
-
-        HashMap<String, BigDecimal>  map = new HashMap<>();
-        map.put("DJ1", new BigDecimal("120.68"));
-        map.put("DJ2", new BigDecimal("14.16"));
-        map.put("DJ3", new BigDecimal("5.08"));
-        map.put("DJ5", new BigDecimal("120"));
-
         long begin = System.currentTimeMillis();
-        List<AnalysePriceWrapper> treeList = new SweItemAnalysisHandler().getTree(analysePriceWrapperList);
+
+        // 获取子目 id = 53256和 id = 53257
+        CostItem costItem = costItemMapper.selectCostItemListByItemId(53256L);
+
+        // 处理子目数据，封装到标准类SweAdjustWrapper，为计算准备基本参数
+        SweAdjustWrapper sweAdjustWrapper = adjustWrapperConverter.costItem2SweAdjustWrapper(costItem);
+
+
+        // 获取子目单价分析处理器
+        SweItemAnalysisHandler analysisHandler = (SweItemAnalysisHandler)analysisHandlerFactory.
+                getAnalysisHandler(sweAdjustWrapper, FileTypeConstant.SWE_FILE, FeeCodeScopeConstant.ITEM);
+
+
+        // 获取子目对应的单价分析
+        List<AnalysePrice> analysePriceList = costAnalysePriceMapper.selectCostAnalysePriceList(53256L);
+        log.info("原始数据");
+        analysePriceList.forEach(System.out::println);
+
+        // 处理单价分析数据，封装到标准类AnalysePriceWrapper，为计算准备基本参数
+        List<AnalysePriceWrapper> analysePriceWrapperList = adjustWrapperConverter.analysePrice2AnalysePriceWrapper(analysePriceList);
+
+        // 进行单价分析，获取有完整结果的单价分析树
+        List<AnalysePriceWrapper> analysis = analysisHandler.analysis(analysePriceWrapperList);
+        log.info("计算数据");
+        analysis.forEach(System.out::println);
+
+        // 通过单价分析树结果补充子目数据
+
 
         log.info("计算数据,共用时：{}", System.currentTimeMillis() - begin);
-        treeList.forEach(System.out::println);
-
-
-        // 分析单价分析公式
-
-        // 解析
-
     }
 
     @Test
@@ -84,7 +97,7 @@ public class Demo {
         Long itemId = 57411L;
 
         // 获取对应的index
-        CostItem costItem = costItemMapper.selectCostItemListByItemId(itemId).get(0);
+        CostItem costItem = costItemMapper.selectCostItemListByItemId(itemId);
 
         if(null == costItem.getSumFeeRule()) {
             // todo 默认使用市场不含税价
@@ -99,7 +112,7 @@ public class Demo {
 
 
         // 获取对应的单价分析
-        List<AnalysePriceWrapper> analysePriceWrapperList = costAnalysePriceMapper.selectCostAnalysePriceList(itemId);
+        List<AnalysePrice> analysePriceList = costAnalysePriceMapper.selectCostAnalysePriceList(itemId);
 
 
         HashMap<String, BigDecimal>  map = new HashMap<>();
@@ -113,10 +126,6 @@ public class Demo {
 
         // 代入计算
         long begin = System.currentTimeMillis();
-        List<AnalysePriceWrapper> treeList = new SweIndexAnalysisHandler().getTree(analysePriceWrapperList, map, itemList, costFeeList);
-
-        log.info("计算数据,共用时：{}", System.currentTimeMillis() - begin);
-        treeList.forEach(System.out::println);
     }
 
 }

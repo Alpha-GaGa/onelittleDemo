@@ -4,19 +4,12 @@ import com.cost.constant.FeeCodeScopeConstant;
 import com.cost.constant.WmmNameConstant;
 import com.cost.domain.wrapper.AnalysePriceWrapper;
 import com.cost.domain.common.TreeNode;
-import com.cost.domain.wrapper.SweAdjustWrapper;
-import com.cost.domain.wrapper.SweFeeCodeWrapper;
-import com.cost.enums.FileTypeCacheKeyEnum;
-import com.cost.util.CalculateUtils;
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.util.*;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * @description 子目计算处理器
@@ -24,74 +17,12 @@ import java.util.regex.Pattern;
  * @date 2023-04-10 15:47
  */
 @Slf4j
-@AllArgsConstructor
-public class SweItemAnalysisHandler extends BasicsTreeBuilder implements AnalysisHandler<AnalysePriceWrapper> {
+public class SweItemAnalysisHandler extends SweAnalysisHandler {
 
     /**
-     * 系统费用代号映射Map
+     * 最下层指标/清单类型标识
      */
-    private FeeCodeMatchHandler feeCodeMatchHandler;
-
-    /**
-     * 斯维尔指标/子目调差封装类
-     */
-    private SweAdjustWrapper adjustWrapper;
-
-    /**
-     * 文件来源类型对应cacheKey枚举类
-     */
-    private FileTypeCacheKeyEnum fileTypeCacheKeyEnum;
-
-    /**
-     * 取费文件id
-     */
-    private Long feeDocId;
-
-    /**
-     * 费用代号对应AnalysePriceWrapperMapping
-     */
-    private final Map<String, AnalysePriceWrapper> AnalysePriceWrapperMapping = new HashMap<>();
-
-    /**
-     * 费用代号映射Map
-     */
-    private final Map<String, BigDecimal> feeCodeMapping = new HashMap<>();
-
-    /**
-     * 费用代号Set
-     */
-    private final Set<String> feeCodeSet = new HashSet<>();
-
-    /**
-     * feeExpr中费用代号Set
-     */
-    private final Set<String> exprFeeCodeSet = new HashSet<>();
-
-    /**
-     * 筛选器
-     */
-    public static final Pattern compile = Pattern.compile("[a-zA-Z0-9_]+");
-
-
-    /**
-     * @param analysePriceWrapperList
-     * @return
-     */
-    @Override
-    public List<AnalysePriceWrapper> analysis(List<AnalysePriceWrapper> analysePriceWrapperList) {
-        if (CollectionUtils.isEmpty(analysePriceWrapperList)) {
-            throw new IllegalArgumentException("单价分析列表不能为空");
-        }
-        try {
-            return super.getTree(analysePriceWrapperList);
-            // todo 需要做处理
-        } catch (InstantiationException e) {
-            throw new RuntimeException(e);
-        } catch (IllegalAccessException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
+    public static final String TYPE = FeeCodeScopeConstant.ITEM;
 
     /**
      * 单价分析节点前置处理，先获取其feeExpr中包含的费用代号，以及获取已知值
@@ -106,8 +37,8 @@ public class SweItemAnalysisHandler extends BasicsTreeBuilder implements Analysi
 
         // 把feeCode费用代号保存到feeCodeSet
         String feeCode = AnalysePriceWrapper.getFeeCode();
-        feeCodeSet.add(feeCode);
-        AnalysePriceWrapperMapping.put(feeCode, AnalysePriceWrapper);
+        super.feeCodeSet.add(feeCode);
+        super.AnalysePriceWrapperMapping.put(feeCode, AnalysePriceWrapper);
 
         // 如果该单价分析节点wmmName为0，feeExpr为具体的值，feeRate为具体工作量，freeAmount = feeExpr * feeRate
         if (StringUtils.isNotBlank(AnalysePriceWrapper.getWmmName()) && WmmNameConstant.DIRECT_VALUE.equals(AnalysePriceWrapper.getWmmName())) {
@@ -115,7 +46,7 @@ public class SweItemAnalysisHandler extends BasicsTreeBuilder implements Analysi
             BigDecimal freeAmount = FeeExpr.multiply(AnalysePriceWrapper.getFeeRate());
             AnalysePriceWrapper.setFeeAmount(freeAmount);
             // 把feeCode对应的价格保存到feeCodeMapping
-            feeCodeMapping.put(feeCode, freeAmount);
+            super.feeCodeMapping.put(feeCode, freeAmount);
             return;
         }
 
@@ -127,97 +58,27 @@ public class SweItemAnalysisHandler extends BasicsTreeBuilder implements Analysi
                 Matcher matcher = compile.matcher(AnalysePriceWrapper.getFeeExpr());
                 while (matcher.find()) {
                     // 把公式中包含的费用代号保存到exprFeeCodeSet
-                    exprFeeCodeSet.add(matcher.group());
+                    super.exprFeeCodeSet.add(matcher.group());
                 }
                 return;
             }
 
             // 如果feeExpr为空
-            BigDecimal bigDecimal = BigDecimal.ZERO;
+            BigDecimal feeAmount = BigDecimal.ZERO;
             // todo 几乎不可能，因为我们压根不取feeAmount
             if (!BigDecimal.ZERO.equals(AnalysePriceWrapper.getFeeAmount())) {
                 // 如果总价非0，分析取费代号
-                bigDecimal = analysisFeeCode(AnalysePriceWrapper);
+                feeAmount = Optional.ofNullable(analysisFeeCode(AnalysePriceWrapper, TYPE))
+                        .orElseThrow(() ->
+                        // todo 需要加异常
+                        new RuntimeException("无法通过 fileType=" + fileTypeCacheKeyEnum.getFileType() + " feeDocId=" + feeDocId + "登记的系统映射资料解析 feeCode:")
+                );
             }
-            AnalysePriceWrapper.setFeeAmount(bigDecimal);
-            feeCodeMapping.put(feeCode, bigDecimal);
+            AnalysePriceWrapper.setFeeAmount(feeAmount);
+            super.feeCodeMapping.put(feeCode, feeAmount);
         }
 
         // todo 如果wmmId为空，或者不为0或-1，需要怎么处理
-    }
-
-    /**
-     * 使用费用代号分析器进行分析
-     *
-     * @param AnalysePriceWrapper 需要分析的单价分析数据
-     * @return 分析得到的结果
-     */
-    private BigDecimal analysisFeeCode(AnalysePriceWrapper AnalysePriceWrapper) {
-        return feeCodeMatchHandler.match(
-                new SweFeeCodeWrapper()
-                        // 设置分析费用代号所属层级
-                        .setType(FeeCodeScopeConstant.ITEM)
-                        // 设置待分析费用代号所属取费文件Id
-                        .setFeeDocId(feeDocId)
-                        // 设置待分析费用代号来源
-                        .setFileTypeCacheKeyEnum(fileTypeCacheKeyEnum)
-                        // 设置待分析费用代号所属节点数据
-                        .setAdjustWrapper(adjustWrapper)
-                        // 设置待分析费用代号名称
-                        .setFeeName(AnalysePriceWrapper.getFeeName())
-                        // 设置待分析费用代号
-                        .setFeeCode(AnalysePriceWrapper.getFeeCode())
-                        .setAdjustBeforePrice(new BigDecimal(AnalysePriceWrapper.getFeeExpr()))
-        );
-    }
-
-    /**
-     * 使用费用代号分析器进行分析
-     *
-     * @param feeCode 需要分析的费用代号
-     * @return 分析得到的结果
-     */
-    private BigDecimal analysisFeeCode(String feeCode) {
-        return feeCodeMatchHandler.match(
-                new SweFeeCodeWrapper()
-                        // 设置分析费用代号所属层级
-                        .setType(FeeCodeScopeConstant.ITEM)
-                        // 设置待分析费用代号所属取费文件Id
-                        .setFeeDocId(feeDocId)
-                        // 设置待分析费用代号来源
-                        .setFileTypeCacheKeyEnum(fileTypeCacheKeyEnum)
-                        // 设置待分析费用代号所属节点数据
-                        .setAdjustWrapper(adjustWrapper)
-                        // 设置待分析费用代号
-                        .setFeeCode(feeCode)
-        );
-    }
-
-    /**
-     * @param node            当前操作节点
-     * @param groupByParentId 按照parentId分组单价分析节点Map集合
-     * @param <T>             待处理单价分析节点
-     */
-    @Override
-    public <T extends TreeNode> void nodeProcessAfter(T node, Map<Long, List<T>> groupByParentId) {
-        AnalysePriceWrapper AnalysePriceWrapper = (AnalysePriceWrapper) node;
-
-        // 如果当前节点的费用不为空，证明已经计算完成，直接返回
-        if (null != AnalysePriceWrapper.getFeeAmount()) {
-            return;
-        }
-
-        // 使用Aviator计算表达式
-        //BigDecimal bigDecimal1 = CalculateUtils.calculateByAviator(CostAnalysePrice.getFeeExpr(), feeCodeMapping);
-
-        // 使用calculateByJexl计算表达式
-        BigDecimal bigDecimal1 = CalculateUtils.calculateByJexl(AnalysePriceWrapper.getFeeExpr(), feeCodeMapping);
-
-
-        // 把计算值赋值为freeAmount，并保存到feeCodeMapping
-        AnalysePriceWrapper.setFeeAmount(bigDecimal1);
-        // todo 是否要考虑有相同的key情况
-        feeCodeMapping.put(AnalysePriceWrapper.getFeeCode(), bigDecimal1);
     }
 
     /**
@@ -229,20 +90,27 @@ public class SweItemAnalysisHandler extends BasicsTreeBuilder implements Analysi
     @Override
     public <T extends TreeNode> void treeProcessBefore(List<T> pendingTreeNode) {
         // 获取feeCodeSet和exprFeeCodeSet的差集，保存到unknowfeeCodeSet中
-        Set<String> unknowfeeCodeSet = new HashSet<>(feeCodeSet);
-        unknowfeeCodeSet.removeAll(exprFeeCodeSet);
+        Set<String> unknowfeeCodeSet = new HashSet<>(super.feeCodeSet);
+        unknowfeeCodeSet.removeAll(super.exprFeeCodeSet);
 
-        // todo 如果系统费用代号Map中不存在，需要怎么处理
+        // todo 如果还是无法解析费用代号，需要怎么处理
         // 遍历unknowfeeCodeSet元素
         unknowfeeCodeSet.forEach(unknowfeeCode ->
-        {
-            if (exprFeeCodeSet.contains(unknowfeeCode)) {
-                // 如果是feeExper公式里拆出来的费用代号，没有对应的单价分析数据，直接分析
-                feeCodeMapping.put(unknowfeeCode, analysisFeeCode(unknowfeeCode));
-            } else {
-                // 如果是deeCode里的费用代号，获取对应的单价分析数据进行分析
-                feeCodeMapping.put(unknowfeeCode, analysisFeeCode(AnalysePriceWrapperMapping.get(unknowfeeCode)));
-            }
-        });
+                super.feeCodeMapping.put(
+                        unknowfeeCode,
+                        Optional.ofNullable(unknowfeeCode)
+                                .map(feeCode -> {
+                                    if (super.exprFeeCodeSet.contains(feeCode)) {
+                                        // 如果是feeExper公式里拆出来的费用代号，没有对应的单价分析数据，直接分析
+                                        return analysisFeeCode(feeCode, TYPE);
+                                    } else {
+                                        // 如果是deeCode里的费用代号，获取对应的单价分析数据进行分析
+                                        return analysisFeeCode(super.AnalysePriceWrapperMapping.get(feeCode), TYPE);
+                                    }
+                                })
+                                .orElseThrow(() ->
+                                        // todo 需要加异常
+                                        new RuntimeException("无法通过 fileType=" + fileTypeCacheKeyEnum.getFileType() + " feeDocId=" + feeDocId + "登记的系统映射资料解析 feeCode:")
+                                )));
     }
 }

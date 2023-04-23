@@ -41,6 +41,11 @@ public class SweFeeCodeWrapper{
     private FileTypeCacheKeyEnum fileTypeCacheKeyEnum;
 
     /**
+     * 单价分析费用金额
+     */
+    private BigDecimal feeAmount;
+
+    /**
      * 斯维尔指标/子目调差封装类
      */
     private SweAdjustWrapper adjustWrapper;
