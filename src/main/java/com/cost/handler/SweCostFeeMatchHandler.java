@@ -84,7 +84,7 @@ public class SweCostFeeMatchHandler extends BasicsFeeCodeMatchHandler {
 
 
         // 拼装条件，目前只知道一个措施项目费
-        SysFeeCodeDTO sysFeeCodeDTO = Optional.ofNullable(adjustDataManager.getCostFeeMapping(costFeeKey))
+        SysFeeCodeDTO sysFeeCodeDTO = Optional.ofNullable(adjustDataManager.getCostFeeMapping(costFeeKey, feeCodeWrapper))
                 .map(costFeeMapping -> costFeeMapping.get(feeCodeWrapper.getFeeCode()))
                 .map(costFee -> {
                     // 获取取费文件的feeExpr

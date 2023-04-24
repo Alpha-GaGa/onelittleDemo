@@ -40,22 +40,25 @@ public class SweItemAnalysisHandler extends SweAnalysisHandler {
         // 先把feeCode费用代号保存到feeCodeSet
         super.feeCodeSet.add(feeCode);
         // 把单价分析封装类analysePriceWrapper按照费用代号feeCode排序
-        super.analysePriceWrapperMapping.put(feeCode, analysePriceWrapper);
+        super.feeNameMapping.put(analysePriceWrapper.getFeeName(), analysePriceWrapper);
 
         // 如果该单价分析节点wmmName为0，feeExpr为具体的值，feeRate为具体工作量，freeAmount = feeExpr * feeRate
         if (StringUtils.isNotBlank(analysePriceWrapper.getWmmName()) && WmmNameConstant.DIRECT_VALUE.equals(analysePriceWrapper.getWmmName())) {
             BigDecimal FeeExpr = new BigDecimal(analysePriceWrapper.getFeeExpr());
+            // 乘费率，但是不需要转换百%
             BigDecimal freeAmount = FeeExpr.multiply(analysePriceWrapper.getFeeRate());
             analysePriceWrapper.setFeeAmount(freeAmount);
             // 把feeCode对应的价格保存到feeCodeMapping
             super.feeCodeValueMapping.put(feeCode, freeAmount);
+            // 设置给单价分析封装类已完成计算
+            analysePriceWrapper.setIsCalculate(CALCULATED);
             return;
         }
 
         // 如果如果该单价分析节点wmmId为-1，feeExpr为计算方程式或为空，需要进行拆解，方程式由数字及英文字符串和( ) + - * /构成
         if (StringUtils.isNotBlank(analysePriceWrapper.getWmmName()) && WmmNameConstant.CALCULATE.equals(analysePriceWrapper.getWmmName())) {
-            // 如果feeExpr非空，获取公式中包含的费用代号
-            if (StringUtils.isNotBlank(analysePriceWrapper.getFeeExpr())) {
+            // 如果feeExpr非空，并且不是纯数字，获取公式中包含的费用代号
+            if (StringUtils.isNotBlank(analysePriceWrapper.getFeeExpr()) && !analysePriceWrapper.getFeeExpr().matches("[\\d.]+")) {
                 // todo 是否除了数字、英文、_ 以为的费用代号组成
                 Matcher matcher = compile.matcher(analysePriceWrapper.getFeeExpr());
                 while (matcher.find()) {
@@ -77,6 +80,8 @@ public class SweItemAnalysisHandler extends SweAnalysisHandler {
             }
             analysePriceWrapper.setFeeAmount(feeAmount);
             super.feeCodeValueMapping.put(feeCode, feeAmount);
+            // 设置给单价分析封装类已完成计算
+            analysePriceWrapper.setIsCalculate(CALCULATED);
         }
 
         // todo 如果wmmId为空，或者不为0或-1，需要怎么处理
@@ -100,17 +105,21 @@ public class SweItemAnalysisHandler extends SweAnalysisHandler {
         // todo 如果还是无法解析费用代号，需要怎么处理
         // 遍历unknowfeeCodeSet元素，分析，然后保存到feeCodeMapping
         unknowfeeCodeSet.forEach(unknowfeeCode -> {
-            // 如果费用代号是 GLF
-            if (COMPREHENSIVE_UNIT_PRICE_FEE_CODE.equals(unknowfeeCode)) {
-                // 如果费用名称是 管理费
-                AnalysePriceWrapper analysePriceWrapper = analysePriceWrapperMapping.get(COMPREHENSIVE_UNIT_PRICE_FEE_CODE2);
-                if (COMPREHENSIVE_UNIT_PRICE_FEE_NAME.equals(analysePriceWrapper.getFeeName())) {
-                    // 添加 GLF = DJ4
-                    super.feeCodeTransferMapping.put(unknowfeeCode, COMPREHENSIVE_UNIT_PRICE_FEE_CODE2);
-                    return;
-                }
-                // todo 需要加异常
-                throw new RuntimeException("无法通过 fileType=" + fileTypeCacheKeyEnum.getFileType() + " feeDocId=" + feeDocId + " 登记的系统映射资料解析 feeCode=" + unknowfeeCode);
+            // todo 除了管理费还有其他的怎么办
+            // 如果费用代号是 GLF 或者是 DJ4
+            if (COMPREHENSIVE_UNIT_PRICE_FEE_CODE.equals(unknowfeeCode) || COMPREHENSIVE_UNIT_PRICE_FEE_CODE2.equals(unknowfeeCode)) {
+                // 以feeCode为key，exprFeeCode为value，添加到 feeCodeTransferMapping
+                feeCodeTransferMapping.put(
+                        Optional.ofNullable(feeNameMapping.get(COMPREHENSIVE_UNIT_PRICE_FEE_NAME))
+                                .map(AnalysePriceWrapper::getFeeCode)
+                                .orElseThrow(() ->
+                                        // todo 需要加异常
+                                        new RuntimeException("无法通过 fileType=" + fileTypeCacheKeyEnum.getFileType() +
+                                                " feeDocId=" + feeDocId +
+                                                " 登记的系统映射资料解析 feeCode=" + unknowfeeCode)
+                                ),
+                        unknowfeeCode);
+                return;
             }
 
             super.feeCodeValueMapping.put(
@@ -120,7 +129,9 @@ public class SweItemAnalysisHandler extends SweAnalysisHandler {
                             .map(feeCode -> analysisFeeCode(feeCode, TYPE))
                             .orElseThrow(() ->
                                     // todo 需要加异常
-                                    new RuntimeException("无法通过 fileType=" + fileTypeCacheKeyEnum.getFileType() + " feeDocId=" + feeDocId + " 登记的系统映射资料解析 feeCode=" + unknowfeeCode)
+                                    new RuntimeException("无法通过 fileType=" + fileTypeCacheKeyEnum.getFileType() +
+                                            " feeDocId=" + feeDocId +
+                                            " 登记的系统映射资料解析 feeCode=" + unknowfeeCode)
                             ));
         });
     }

@@ -12,12 +12,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 
-
 /**
  * @description 单价分析处理器工厂
  * @Created zhangtianhao
  * @date 2023-04-20 16:59
- * @version
  */
 @Slf4j
 @Component
@@ -27,13 +25,12 @@ public class AnalysisHandlerFactory {
     private FeeCodeHandlerFactory feeCodeHandlerFactory;
 
     /**
-     *
      * @param adjustWrapper
      * @param fileType
      * @param feeCodeScope
      * @return
      */
-    public AnalysisHandler  getAnalysisHandler(SweAdjustWrapper adjustWrapper, String fileType, String feeCodeScope) {
+    public AnalysisHandler getAnalysisHandler(SweAdjustWrapper adjustWrapper, String fileType, String feeCodeScope) {
         switch (FileTypeCacheKeyEnum.getByFileType(fileType)) {
             // 处理自定义数据文件
             case SELF:
@@ -48,7 +45,6 @@ public class AnalysisHandlerFactory {
 
 
     /**
-     *
      * @param adjustWrapper
      * @param feeCodeScope
      * @return
@@ -61,13 +57,17 @@ public class AnalysisHandlerFactory {
                 return initSweAnalysisHandler(
                         adjustWrapper,
                         SweItemAnalysisHandler.class
-                    );
+                );
             // 最下层指标/清单
             case FeeCodeScopeConstant.INDEX:
-                return initSweAnalysisHandler(
+                SweIndexAnalysisHandler analysisHandler = initSweAnalysisHandler(
                         adjustWrapper,
                         SweIndexAnalysisHandler.class
                 );
+                // 设置取费文件处理器
+                analysisHandler.setSweCostFeeMatchHandler(feeCodeHandlerFactory.getCostFeeHandler(FileTypeCacheKeyEnum.SWE.getFileType()));
+                return analysisHandler;
+
             // 清单法 todo 需要等产品澄清
             case FeeCodeScopeConstant.INVENTORY:
                 return null;
@@ -78,12 +78,13 @@ public class AnalysisHandlerFactory {
 
     /**
      * 初始化斯维尔单价分析处理器
+     *
      * @param adjustWrapper
      * @param handlerClass
-     * @return
      * @param <T>
+     * @return
      */
-    private <T extends SweAnalysisHandler> T initSweAnalysisHandler(SweAdjustWrapper adjustWrapper, Class<T> handlerClass){
+    private <T extends SweAnalysisHandler> T initSweAnalysisHandler(SweAdjustWrapper adjustWrapper, Class<T> handlerClass) {
         // 获取实例方法2
         T sweAnalysisHandler = null;
         try {

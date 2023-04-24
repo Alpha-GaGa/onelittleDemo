@@ -5,6 +5,7 @@ import com.cost.domain.CostFee;
 import com.cost.domain.SysFeeCodeDTO;
 import com.cost.domain.request.CostFeeQueryRequest;
 import com.cost.domain.request.FeeCodeQueryRequest;
+import com.cost.domain.wrapper.SweFeeCodeWrapper;
 import com.cost.service.ICostFeeService;
 import com.cost.service.IFeeCodeRelService;
 import com.cost.service.impl.RedisService;
@@ -105,7 +106,7 @@ public class AdjustDataManager {
      * @return 费用代号映射Map
      */
     @Cacheable(key = "#adjustCacheKey.adjustCacheKey")
-    public Map<String, CostFee> getCostFeeMapping(AdjustCacheKey adjustCacheKey) {
+    public Map<String, CostFee> getCostFeeMapping(AdjustCacheKey adjustCacheKey, SweFeeCodeWrapper feeCodeWrapper) {
         String fileType = adjustCacheKey.getFileTypeCacheKeyEnum().getFileType();
         Long feeDocId = adjustCacheKey.getFeeDocId();
 
@@ -114,6 +115,9 @@ public class AdjustDataManager {
         // todo 查询条件需要重新设置，走索引
         List<CostFee> costFeeList = costFeeService.selectCostFee(
                 new CostFeeQueryRequest()
+                        .setCostDocId(adjustCacheKey.getFeeDocId())
+                        .setFeeDocId(feeCodeWrapper.getFeeDocId())
+                        .setLineId(feeCodeWrapper.getLineId())
         );
 
         // 处理数据，feeCode为key保存到HashMap中

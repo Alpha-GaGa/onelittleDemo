@@ -44,9 +44,9 @@ public abstract class SweAnalysisHandler extends BasicsTreeBuilder implements An
     Long feeDocId;
 
     /**
-     * 费用代号对应AnalysePriceWrapperMapping
+     * 费用名称对应AnalysePriceWrapperMapping
      */
-    final Map<String, AnalysePriceWrapper> analysePriceWrapperMapping = new HashMap<>();
+    final Map<String, AnalysePriceWrapper> feeNameMapping = new HashMap<>();
 
     /**
      * 费用代号对应值Map
@@ -86,6 +86,8 @@ public abstract class SweAnalysisHandler extends BasicsTreeBuilder implements An
      */
     public static final String COMPREHENSIVE_UNIT_PRICE_FEE_CODE2 = "DJ4";
 
+    public static final BigDecimal ONE_HUNDRED = new BigDecimal("100");
+
 
     /**
      * @param analysePriceWrapperList
@@ -120,33 +122,27 @@ public abstract class SweAnalysisHandler extends BasicsTreeBuilder implements An
             return;
         }
 
-        // 如果费用代号对应费用代号中间Map中有该代号，需要进行转换
-        String feeCodeTransferValue = feeCodeTransferMapping.get(analysePriceWrapper.getFeeCode());
-        if (StringUtils.isNotBlank(feeCodeTransferValue)) {
-            // 保存转换后的值
-            feeCodeValueMapping.put(
-                    feeCodeTransferValue,
-                    Optional.ofNullable(feeCodeValueMapping.get(feeCodeTransferValue)).
-                            orElseThrow(() ->
-                                    // todo 需要加异常
-                                    new RuntimeException("无法通过 fileType=" + fileTypeCacheKeyEnum.getFileType() +
-                                            " feeDocId=" + feeDocId +
-                                            " 登记的系统映射资料解析 feeCode=" + analysePriceWrapper.getFeeCode() +
-                                            "该 feeCode 映射 feeCodeTransferValue=" + feeCodeTransferValue))
-            );
-        }
-
         // 使用Aviator计算表达式
         BigDecimal bigDecimal = CalculateUtils.calculateByAviator(analysePriceWrapper.getFeeExpr(), feeCodeValueMapping);
 
         // 使用calculateByJexl计算表达式
         //BigDecimal bigDecimal = CalculateUtils.calculateByJexl(analysePriceWrapper.getFeeExpr(), feeCodeMapping);
 
+        // 和费率相乘获得结果
+        BigDecimal result = bigDecimal.multiply(analysePriceWrapper.getFeeRate()).divide(ONE_HUNDRED);
+
+        // 如果节点feeCode在feeCodeTransferMapping中间Map有对应key，需要对value进行赋值
+        String feeCodeTransferValue = feeCodeTransferMapping.get(analysePriceWrapper.getFeeCode());
+        if (StringUtils.isNotBlank(feeCodeTransferValue)) {
+            // 赋值value与该节点fee相同
+            feeCodeValueMapping.put(feeCodeTransferValue, result);
+        }
+
 
         // 把计算值赋值为freeAmount，并保存到feeCodeMapping
-        analysePriceWrapper.setFeeAmount(bigDecimal);
+        analysePriceWrapper.setFeeAmount(result);
         // todo 是否要考虑有相同的key情况
-        feeCodeValueMapping.put(analysePriceWrapper.getFeeCode(), bigDecimal);
+        feeCodeValueMapping.put(analysePriceWrapper.getFeeCode(), result);
         // 设置给单价分析封装类已完成计算
         analysePriceWrapper.setIsCalculate(CALCULATED);
     }

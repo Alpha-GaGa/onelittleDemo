@@ -59,13 +59,18 @@ public class Demo {
     @Qualifier(value = "adjustWrapperConverterImpl")
     AdjustWrapperConverter adjustWrapperConverter;
 
+    /**
+     * 测试单个子目计算
+     */
     @Test
     public void testItem(){
 
         long begin = System.currentTimeMillis();
 
+        Long itemId = 53256L;
+
         // 获取子目 id = 53256和 id = 53257
-        CostItem costItem = costItemMapper.selectCostItemListByItemId(53256L);
+        CostItem costItem = costItemMapper.selectCostItemListByItemId(itemId);
 
         // 处理子目数据，封装到标准类SweAdjustWrapper，为计算准备基本参数
         SweAdjustWrapper sweAdjustWrapper = adjustWrapperConverter.costItem2SweAdjustWrapper(costItem);
@@ -77,7 +82,7 @@ public class Demo {
 
 
         // 获取子目对应的单价分析
-        List<AnalysePrice> analysePriceList = costAnalysePriceMapper.selectCostAnalysePriceList(53256L);
+        List<AnalysePrice> analysePriceList = costAnalysePriceMapper.selectCostAnalysePriceList(itemId);
         log.info("原始数据");
         analysePriceList.forEach(System.out::println);
 
@@ -95,41 +100,48 @@ public class Demo {
         log.info("计算数据,共用时：{}", System.currentTimeMillis() - begin);
     }
 
+    /**
+     * 测试最下层指标计算
+     */
     @Test
     public void testIndex(){
 
-        Long itemId = 57411L;
-
-        // 获取对应的index
-        CostItem costItem = costItemMapper.selectCostItemListByItemId(itemId);
-
-        if(null == costItem.getSumFeeRule()) {
-            // todo 默认使用市场不含税价
-            System.out.println("没有取费Id");
-        }
-
-        // 获取index的下层子目
-        List<CostItem> itemList = costItemMapper.selectCostItemListByParentId(itemId);
-
-        // 获取对应的取费文件
-        List<CostFee> costFeeList = costFeeMapper.selectCostFeeListByfeeDocId(costItem.getFeeDocId());
-
-
-        // 获取对应的单价分析
-        List<AnalysePrice> analysePriceList = costAnalysePriceMapper.selectCostAnalysePriceList(itemId);
-
-
-        HashMap<String, BigDecimal>  map = new HashMap<>();
-        map.put("RGF", costItem.getWorkPrice().multiply(costItem.getQuantity()));
-        map.put("CLF", costItem.getMachinePrice().multiply(costItem.getQuantity()));
-        map.put("ZCF", costItem.getMMaterialPrice().multiply(costItem.getQuantity()));
-        map.put("JC_RGF", new BigDecimal("0"));
-        map.put("JC_CLF", new BigDecimal("0"));
-        map.put("JC_JXF", new BigDecimal("0"));
-        map.put("DLF", new BigDecimal("136900"));
-
-        // 代入计算
         long begin = System.currentTimeMillis();
+
+        Long indexId = 53255L;
+        // 获取最下层指标/清单
+        CostItem costItem = costItemMapper.selectCostItemListByItemId(indexId);
+        // 处理最下层指标/清单数据，封装到标准类SweAdjustWrapper，为计算准备基本参数
+        SweAdjustWrapper sweAdjustWrapper = adjustWrapperConverter.costItem2SweAdjustWrapper(costItem);
+
+        // 获取指标下的子目
+        List<CostItem> itemList = costItemMapper.selectCostItemListByParentId(indexId);
+        // 处理子目数据，封装到标准类SweAdjustWrapper，为计算准备基本参数
+        List<SweAdjustWrapper> sweAdjustWrapperList = adjustWrapperConverter.costItem2SweAdjustWrapper(itemList);
+        // 装载
+        sweAdjustWrapper.setChildList(sweAdjustWrapperList);
+
+        // 获取子目单价分析处理器
+        SweIndexAnalysisHandler analysisHandler = (SweIndexAnalysisHandler)analysisHandlerFactory.
+                getAnalysisHandler(sweAdjustWrapper, FileTypeConstant.SWE_FILE, FeeCodeScopeConstant.INDEX);
+
+        // 获取子目对应的单价分析
+        List<AnalysePrice> analysePriceList = costAnalysePriceMapper.selectCostAnalysePriceList(indexId);
+        log.info("原始数据");
+        analysePriceList.forEach(System.out::println);
+
+        // 处理单价分析数据，封装到标准类AnalysePriceWrapper，为计算准备基本参数
+        List<AnalysePriceWrapper> analysePriceWrapperList = adjustWrapperConverter.analysePrice2AnalysePriceWrapper(analysePriceList);
+
+        // 进行单价分析，获取有完整结果的单价分析树
+        List<AnalysePriceWrapper> analysis = analysisHandler.analysis(analysePriceWrapperList);
+        log.info("计算数据");
+        analysis.forEach(System.out::println);
+
+        // 通过单价分析树结果补充子目数据
+
+
+        log.info("计算数据,共用时：{}", System.currentTimeMillis() - begin);
     }
 
     @Test
