@@ -4,22 +4,22 @@ import com.cost.DemoApplication;
 import com.cost.constant.FeeCodeScopeConstant;
 import com.cost.constant.FileTypeConstant;
 import com.cost.converter.AdjustWrapperConverter;
-import com.cost.domain.AnalysePrice;
+import com.cost.domain.*;
+import com.cost.domain.request.FeeCodeQueryRequest;
 import com.cost.domain.wrapper.AnalysePriceWrapper;
 import com.cost.domain.wrapper.SweAdjustWrapper;
 import com.cost.factory.AnalysisHandlerFactory;
 import com.cost.handler.SweIndexAnalysisHandler;
 import com.cost.handler.SweItemAnalysisHandler;
-import com.cost.domain.CostFee;
-import com.cost.domain.CostItem;
-import com.cost.domain.CostWmm;
 import com.cost.mapper.CostAnalysePriceMapper;
 import com.cost.mapper.CostFeeMapper;
 import com.cost.mapper.CostItemMapper;
+import com.cost.mapper.FeeCodeRelMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 
@@ -53,6 +53,10 @@ public class Demo {
     AnalysisHandlerFactory analysisHandlerFactory;
 
     @Autowired
+    FeeCodeRelMapper feeCodeRelMapper;
+
+    @Autowired
+    @Qualifier(value = "adjustWrapperConverterImpl")
     AdjustWrapperConverter adjustWrapperConverter;
 
     @Test
@@ -126,6 +130,17 @@ public class Demo {
 
         // 代入计算
         long begin = System.currentTimeMillis();
+    }
+
+    @Test
+    public void testFeeCodeRel(){
+        List<SysFeeCodeDTO> sysFeeCodeDTOS = feeCodeRelMapper.selectFeeCode(
+                new FeeCodeQueryRequest()
+                        .setFeeDocId(21L)
+                        .setFileType("1"));
+
+        sysFeeCodeDTOS.forEach(System.out::println);
+
     }
 
 }

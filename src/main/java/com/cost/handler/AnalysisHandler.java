@@ -11,6 +11,10 @@ import java.util.List;
  * @version
  */
 public interface AnalysisHandler<T extends TreeNode> {
+    /**
+     * 已完成计算
+     */
+    boolean CALCULATED = true;
 
     /**
      *

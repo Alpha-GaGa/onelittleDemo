@@ -77,9 +77,10 @@ public class SweFeeCodeMatchHandler extends BasicsFeeCodeMatchHandler {
             result = analysis(feeCodeWrapper, sysFeeCodeDTO);
             // todo 需要自定义调差异常
         }catch (Exception e){
-            log.info("费用代号处理器解析 feeCode={} 失败，原因:{}", feeCodeWrapper.getFeeCode(), e.getMessage());
+            log.warn("{} 解析 feeCode={} 失败，原因:{}", simpleName, feeCodeWrapper.getFeeCode(), e.getMessage());
         }
 
+        log.info("{} 解析 feeCode={} ，sysFeeCodeDTO={} ，result={} ", simpleName, feeCodeWrapper.getFeeCode(), sysFeeCodeDTO, result);
         return result;
     }
 }

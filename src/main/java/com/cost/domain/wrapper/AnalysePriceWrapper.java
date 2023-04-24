@@ -73,6 +73,10 @@ public class AnalysePriceWrapper implements TreeNode<AnalysePriceWrapper> {
 	 */
 	private String unit;
 	/**
+	 * 是否已经计算，false表示未计算，true表示已计算，默认值为false
+	 */
+	private Boolean isCalculate = false;
+	/**
 	 * 子集
 	 */
 	private List<AnalysePriceWrapper> children;

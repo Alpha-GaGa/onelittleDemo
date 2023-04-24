@@ -9,6 +9,7 @@ import com.cost.domain.common.FeeCodeConditional;
 import com.cost.domain.wrapper.SweAdjustWrapper;
 import com.cost.domain.wrapper.SweFeeCodeWrapper;
 import com.cost.util.CalculateUtils;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 
@@ -23,6 +24,7 @@ import java.util.regex.Pattern;
  * @Created zhangtianhao
  * @date 2023-04-20 18:35
  */
+@Slf4j
 public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler {
 
     /**
@@ -35,62 +37,69 @@ public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler {
      * 节点的费用代号分析
      *
      * @param feeCodeWrapper 需要解析的对象
-     * @param sysFeeCodeDTO 系统费用代号映射对象
+     * @param sysFeeCodeDTO  系统费用代号映射对象
      * @return 返回分析出来的结果
      */
     @Override
     public BigDecimal analysis(SweFeeCodeWrapper feeCodeWrapper, SysFeeCodeDTO sysFeeCodeDTO) {
+        log.info("{} 正在使用 {} 条件进行分析", feeCodeWrapper, sysFeeCodeDTO);
+
         // 获取规则
-        List<FeeCodeConditional> conditional = Optional.ofNullable(sysFeeCodeDTO)
+        List<FeeCodeConditional> conditionalList = Optional.ofNullable(sysFeeCodeDTO)
                 .map(SysFeeCodeDTO::getConditional)
                 .orElseThrow(() ->
                         // todo 需要加异常
                         new RuntimeException("feeCode=" + feeCodeWrapper.getFeeCode() + " 没有对应的SysFeeCodeDTO规则"));
 
-        BigDecimal result = BigDecimal.ZERO;
-        // 按照规则计算
-        conditional.stream().sorted(Comparator.comparing(FeeCodeConditional::getOrder)).forEach(feeCodeConditional -> {
-            switch (feeCodeConditional.getType()) {
-                // 直接取值
-                case FeeCodeConditionalTypeConstant.DIRECT_VALUE:
-                    // 判断是否只作用于自身
-                    if (!FeeCodeConditionalActionOnConstant.SELF.equals(feeCodeConditional.getActionOn())) {
-                        // todo 需要加异常
-                        throw new RuntimeException("直接取值费用代号只允许取自身的值，actionOn=1");
-                    }
-                    result.add(directValue(
-                            feeCodeWrapper.getAdjustWrapper(),
-                            FeeCodeConditionalActionOnConstant.SELF,
-                            feeCodeConditional.getConditionalExpr())
-                    );
-                    break;
-                // 计算取值
-                case FeeCodeConditionalTypeConstant.CALCULATE:
-                    // 判断是否只作用于自身
-                    if (!FeeCodeConditionalActionOnConstant.SELF.equals(feeCodeConditional.getActionOn())) {
-                        // todo 需要加异常
-                        throw new RuntimeException("计算获取费用代号只允许取自身的值，actionOn=1");
-                    }
-                    result.add(calculate(
-                            feeCodeWrapper.getAdjustWrapper(),
-                            FeeCodeConditionalActionOnConstant.SELF,
-                            feeCodeConditional.getConditionalExpr())
-                    );
-                    break;
-                // 筛选累加
-                case FeeCodeConditionalTypeConstant.FILTERED_ACCUMULATION:
-                    result.add(filteredAccumulation(feeCodeWrapper, feeCodeConditional));
-                    break;
-                // 筛选剔除，todo 应该没有使用场景
-                case FeeCodeConditionalTypeConstant.FILTERED_ELIMINATE:
-                    break;
-                // 无法匹配，直接报错
-                default:
-                    throw new RuntimeException("费用代号关系对象类型 FeeCodeConditional.type=" + feeCodeConditional.getType() + " 无法解析");
-            }
 
-        });
-        return result;
+        log.info("sysFeeCodeDTO有 {} 个conditional条件需要分析", conditionalList.size());
+
+        // 按照规则计算，按照feeCodeConditional解析，从0开始累加分析结果
+        BigDecimal analysisResult = conditionalList.stream()
+                .sorted(Comparator.comparing(FeeCodeConditional::getOrder))
+                .map(feeCodeConditional -> {
+                    switch (feeCodeConditional.getType()) {
+                        // 直接取值
+                        case FeeCodeConditionalTypeConstant.DIRECT_VALUE:
+                            // 判断是否只作用于自身
+                            if (!FeeCodeConditionalActionOnConstant.SELF.equals(feeCodeConditional.getActionOn())) {
+                                // todo 需要加异常
+                                throw new RuntimeException("直接取值费用代号只允许取自身的值，actionOn=1");
+                            }
+                            // todo 无法解决加法问题
+                            return directValue(
+                                    feeCodeWrapper.getAdjustWrapper(),
+                                    feeCodeWrapper.getType(),
+                                    feeCodeConditional.getConditionalExpr()
+                            );
+                        // 计算取值
+                        case FeeCodeConditionalTypeConstant.CALCULATE:
+                            // 判断是否只作用于自身
+                            if (!FeeCodeConditionalActionOnConstant.SELF.equals(feeCodeConditional.getActionOn())) {
+                                // todo 需要加异常
+                                throw new RuntimeException("计算获取费用代号只允许取自身的值，actionOn=1");
+                            }
+                            return calculate(
+                                    feeCodeWrapper.getAdjustWrapper(),
+                                    feeCodeWrapper.getType(),
+                                    feeCodeConditional.getConditionalExpr()
+                            );
+                        // 筛选累加
+                        case FeeCodeConditionalTypeConstant.FILTERED_ACCUMULATION:
+                            return filteredAccumulation(feeCodeWrapper, feeCodeConditional);
+                        // 筛选剔除，todo 应该没有使用场景
+                        case FeeCodeConditionalTypeConstant.FILTERED_ELIMINATE:
+                            return BigDecimal.ZERO;
+                        // 无法匹配，直接报错
+                        default:
+                            throw new RuntimeException("费用代号关系对象类型 FeeCodeConditional.type=" + feeCodeConditional.getType() + " 无法解析");
+                    }
+
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        log.info("最终分析结果为：{}", analysisResult);
+        return analysisResult;
     }
 
     /**
@@ -101,6 +110,7 @@ public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler {
      * @return 计算值
      */
     private BigDecimal filteredAccumulation(SweFeeCodeWrapper feeCodeWrapper, FeeCodeConditional feeCodeConditional) {
+        log.info("通过筛选累加取值");
         // 分析作用范围
         List<SweAdjustWrapper> adjustWrapperList = actionOn(feeCodeWrapper, feeCodeConditional);
 
@@ -142,19 +152,21 @@ public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler {
      * @return 计算值
      */
     private BigDecimal equals(List<SweAdjustWrapper> adjustWrapperlist, String type, FeeCodeConditional feeCodeConditional) {
-        BigDecimal result = BigDecimal.ZERO;
-        // 遍历待处理对象集合adjustWrapperlist
-        adjustWrapperlist.forEach(adjustWrapper -> {
+        // 遍历待处理对象集合adjustWrapperlist，对符合条件的数据从0开始累加
+        return adjustWrapperlist.stream()
+                .map(adjustWrapper ->
+                {
                     // todo 如果判断的是合价呢？
                     // 如果集合内adjustWrapper对象JudgementField字段value与JudgementValue()相同，分析conditionalExpr()，累加
                     String value = String.valueOf(getValue(adjustWrapper, feeCodeConditional.getJudgementField()));
                     if (StringUtils.isNotBlank(value) && value.equals(feeCodeConditional.getJudgementValue())) {
-                        result.add(calculate(adjustWrapper, type, feeCodeConditional.getConditionalExpr()));
+                        return calculate(adjustWrapper, type, feeCodeConditional.getConditionalExpr());
                     }
-                }
 
-        );
-        return result;
+                    // 不符合条件，返回0
+                    return BigDecimal.ZERO;
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**
@@ -166,9 +178,10 @@ public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler {
      * @return 计算值
      */
     private BigDecimal greaterThan(List<SweAdjustWrapper> adjustWrapperlist, String type, FeeCodeConditional feeCodeConditional) {
-        BigDecimal result = BigDecimal.ZERO;
-        // 遍历待处理对象集合adjustWrapperlist
-        adjustWrapperlist.forEach(adjustWrapper -> {
+        // 遍历待处理对象集合adjustWrapperlist，对符合条件的数据从0开始累加
+        return adjustWrapperlist.stream()
+                .map(adjustWrapper ->
+                {
                     // todo 如果判断的是合价呢？
                     // 获取判断字段对应的值
                     String valueStr = String.valueOf(getValue(adjustWrapper, feeCodeConditional.getJudgementField()));
@@ -184,11 +197,13 @@ public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler {
                     }
                     // 如果 判断值 < 判断字段对应值 ，分析conditionalExpr()，累加
                     if (-1 == judgementValue.compareTo(value)) {
-                        result.add(calculate(adjustWrapper, type, feeCodeConditional.getConditionalExpr()));
+                        return calculate(adjustWrapper, type, feeCodeConditional.getConditionalExpr());
                     }
-                }
-        );
-        return result;
+
+                    // 不符合条件，返回0
+                    return BigDecimal.ZERO;
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**
@@ -200,29 +215,33 @@ public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler {
      * @return 计算值
      */
     private BigDecimal lessThan(List<SweAdjustWrapper> adjustWrapperlist, String type, FeeCodeConditional feeCodeConditional) {
-        BigDecimal result = BigDecimal.ZERO;
-        // 遍历待处理对象集合adjustWrapperlist
-        adjustWrapperlist.forEach(adjustWrapper -> {
-                    // todo 如果判断的是合价呢？
-                    // 获取判断字段对应的值
-                    String valueStr = String.valueOf(getValue(adjustWrapper, feeCodeConditional.getJudgementField()));
-                    BigDecimal value = null;
-                    BigDecimal judgementValue = null;
-                    // 判断字段对应值和判断值进行转换
-                    try {
-                        value = new BigDecimal(valueStr);
-                        judgementValue = new BigDecimal(feeCodeConditional.getJudgementValue());
-                    } catch (Exception e) {
-                        // todo 需要加异常
-                        throw new RuntimeException("judgementValue=" + feeCodeConditional.getJudgementValue() + "、 judgementFieldValue=" + valueStr + "在judgementCondition=2 时无法被解析");
-                    }
-                    // 如果 判断值 > 判断字段对应值 ，分析conditionalExpr()，累加
-                    if (1 == judgementValue.compareTo(value)) {
-                        result.add(calculate(adjustWrapper, type, feeCodeConditional.getConditionalExpr()));
-                    }
-                }
-        );
-        return result;
+        // 遍历待处理对象集合adjustWrapperlist，对符合条件的数据从0开始累加
+        return adjustWrapperlist.stream()
+                .map(adjustWrapper ->
+                        {
+                            // todo 如果判断的是合价呢？
+                            // 获取判断字段对应的值
+                            String valueStr = String.valueOf(getValue(adjustWrapper, feeCodeConditional.getJudgementField()));
+                            BigDecimal value = null;
+                            BigDecimal judgementValue = null;
+                            // 判断字段对应值和判断值进行转换
+                            try {
+                                value = new BigDecimal(valueStr);
+                                judgementValue = new BigDecimal(feeCodeConditional.getJudgementValue());
+                            } catch (Exception e) {
+                                // todo 需要加异常
+                                throw new RuntimeException("judgementValue=" + feeCodeConditional.getJudgementValue() + "、 judgementFieldValue=" + valueStr + "在judgementCondition=2 时无法被解析");
+                            }
+                            // 如果 判断值 > 判断字段对应值 ，分析conditionalExpr()，累加
+                            if (1 == judgementValue.compareTo(value)) {
+                                return calculate(adjustWrapper, type, feeCodeConditional.getConditionalExpr());
+                            }
+
+                            // 不符合条件，返回0
+                            return BigDecimal.ZERO;
+                        }
+                )
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**
@@ -234,18 +253,20 @@ public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler {
      * @return 计算值
      */
     private BigDecimal contain(List<SweAdjustWrapper> adjustWrapperlist, String type, FeeCodeConditional feeCodeConditional) {
-        BigDecimal result = BigDecimal.ZERO;
-        // 遍历待处理对象集合adjustWrapperlist
-        adjustWrapperlist.forEach(adjustWrapper -> {
+        // 遍历待处理对象集合adjustWrapperlist，对符合条件的数据从0开始累加
+        return adjustWrapperlist.stream()
+                .map(adjustWrapper -> {
                     // todo 如果判断的是合价呢？
                     // 如果集合内adjustWrapper对象JudgementField字段value包含JudgementValue()，分析conditionalExpr()，累加
                     String value = String.valueOf(getValue(adjustWrapper, feeCodeConditional.getJudgementField()));
                     if (StringUtils.isNotBlank(value) && value.contains(feeCodeConditional.getJudgementValue())) {
-                        result.add(calculate(adjustWrapper, type, feeCodeConditional.getConditionalExpr()));
+                        return calculate(adjustWrapper, type, feeCodeConditional.getConditionalExpr());
                     }
-                }
-        );
-        return result;
+
+                    // 不符合条件，返回0
+                    return BigDecimal.ZERO;
+                })
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     /**
@@ -257,6 +278,7 @@ public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler {
      * @return 计算值
      */
     private BigDecimal calculate(SweAdjustWrapper adjustWrapper, String type, String expr) {
+        log.info("通过计算 expr={} 的取值，并且 type={}", expr, type);
         // 判断计算获取值的conditionalExpr格式是否正确
         if (StringUtils.isBlank(expr) || !expr.matches("[a-zA-Z_+\\-*/()]+")) {
             // todo 需要加异常
@@ -293,6 +315,7 @@ public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler {
      * @throws IllegalAccessException
      */
     private BigDecimal directValue(SweAdjustWrapper adjustWrapper, String type, String fieldName) {
+        log.info("直接获取 fieldName={} 的值，并且 type={}", fieldName, type);
         // 判断直接取值的conditionalExpr是否为单一字段
         if (StringUtils.isBlank(fieldName) || !fieldName.matches("[a-zA-Z_]+")) {
             // todo 需要加异常
@@ -360,7 +383,7 @@ public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler {
                 return result.multiply(
                         Optional.ofNullable(adjustWrapper)
                                 .map(SweAdjustWrapper::getQuantity)
-                                .orElseThrow(() -> new RuntimeException("费用代号处理器处理最下层指标/清单时，item对象工作量为空"))
+                                .orElseThrow(() -> new RuntimeException("费用代号处理器处理最下层指标/清单时，SweAdjustWrapper对象工作量为空"))
                 );
             default:
                 // todo 需要加异常
@@ -383,13 +406,14 @@ public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler {
         // 通过反射获取adjustWrapper对象的属性
         try {
             Field declaredField = adjustWrapper.getClass().getDeclaredField(fieldNameStr);
+            declaredField.setAccessible(true);
             return declaredField.get(adjustWrapper);
         } catch (NoSuchFieldException e) {
             // todo 需要加异常
-            throw new RuntimeException("FeeCodeEntity无法找到" + fieldNameStr + "字段属性");
+            throw new RuntimeException(adjustWrapper + " 无法找到 " + fieldNameStr + " 字段属性");
         } catch (IllegalAccessException e) {
             // todo 需要加异常
-            throw new RuntimeException("FeeCodeEntity无法找到" + fieldNameStr + "字段值");
+            throw new RuntimeException(adjustWrapper + " 无法找到 " + fieldNameStr + " 字段值");
         }
     }
 

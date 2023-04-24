@@ -7,6 +7,7 @@ import com.cost.domain.wrapper.SweFeeCodeWrapper;
 import com.cost.enums.FileTypeCacheKeyEnum;
 import com.cost.util.CalculateUtils;
 import lombok.experimental.Accessors;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
@@ -45,12 +46,17 @@ public abstract class SweAnalysisHandler extends BasicsTreeBuilder implements An
     /**
      * 费用代号对应AnalysePriceWrapperMapping
      */
-    final Map<String, AnalysePriceWrapper> AnalysePriceWrapperMapping = new HashMap<>();
+    final Map<String, AnalysePriceWrapper> analysePriceWrapperMapping = new HashMap<>();
 
     /**
-     * 费用代号映射Map
+     * 费用代号对应值Map
      */
-    final Map<String, BigDecimal> feeCodeMapping = new HashMap<>();
+    final Map<String, BigDecimal> feeCodeValueMapping = new HashMap<>();
+
+    /**
+     * 费用代号对应费用代号中间Map
+     */
+    final Map<String, String> feeCodeTransferMapping = new HashMap<>();
 
     /**
      * 费用代号Set
@@ -66,6 +72,19 @@ public abstract class SweAnalysisHandler extends BasicsTreeBuilder implements An
      * 筛选器
      */
     public static final Pattern compile = Pattern.compile("[a-zA-Z0-9_]+");
+
+    /**
+     * 管理费费用名称
+     */
+    public static final String COMPREHENSIVE_UNIT_PRICE_FEE_NAME = "管理费";
+    /**
+     * 管理费费用代号feeCode
+     */
+    public static final String COMPREHENSIVE_UNIT_PRICE_FEE_CODE = "GLF";
+    /**
+     * 管理费费用代号2feeCode
+     */
+    public static final String COMPREHENSIVE_UNIT_PRICE_FEE_CODE2 = "DJ4";
 
 
     /**
@@ -94,24 +113,42 @@ public abstract class SweAnalysisHandler extends BasicsTreeBuilder implements An
      */
     @Override
     public <T extends TreeNode> void nodeProcessAfter(T node, Map<Long, List<T>> groupByParentId) {
-        AnalysePriceWrapper AnalysePriceWrapper = (AnalysePriceWrapper) node;
+        AnalysePriceWrapper analysePriceWrapper = (AnalysePriceWrapper) node;
 
-        // 如果当前节点的费用不为空，证明已经计算完成，直接返回
-        if (null != AnalysePriceWrapper.getFeeAmount()) {
+        // 如果当前节点已经计算完成，直接返回
+        if (analysePriceWrapper.getIsCalculate()) {
             return;
         }
 
+        // 如果费用代号对应费用代号中间Map中有该代号，需要进行转换
+        String feeCodeTransferValue = feeCodeTransferMapping.get(analysePriceWrapper.getFeeCode());
+        if (StringUtils.isNotBlank(feeCodeTransferValue)) {
+            // 保存转换后的值
+            feeCodeValueMapping.put(
+                    feeCodeTransferValue,
+                    Optional.ofNullable(feeCodeValueMapping.get(feeCodeTransferValue)).
+                            orElseThrow(() ->
+                                    // todo 需要加异常
+                                    new RuntimeException("无法通过 fileType=" + fileTypeCacheKeyEnum.getFileType() +
+                                            " feeDocId=" + feeDocId +
+                                            " 登记的系统映射资料解析 feeCode=" + analysePriceWrapper.getFeeCode() +
+                                            "该 feeCode 映射 feeCodeTransferValue=" + feeCodeTransferValue))
+            );
+        }
+
         // 使用Aviator计算表达式
-        //BigDecimal bigDecimal1 = CalculateUtils.calculateByAviator(CostAnalysePrice.getFeeExpr(), feeCodeMapping);
+        BigDecimal bigDecimal = CalculateUtils.calculateByAviator(analysePriceWrapper.getFeeExpr(), feeCodeValueMapping);
 
         // 使用calculateByJexl计算表达式
-        BigDecimal bigDecimal1 = CalculateUtils.calculateByJexl(AnalysePriceWrapper.getFeeExpr(), feeCodeMapping);
+        //BigDecimal bigDecimal = CalculateUtils.calculateByJexl(analysePriceWrapper.getFeeExpr(), feeCodeMapping);
 
 
         // 把计算值赋值为freeAmount，并保存到feeCodeMapping
-        AnalysePriceWrapper.setFeeAmount(bigDecimal1);
+        analysePriceWrapper.setFeeAmount(bigDecimal);
         // todo 是否要考虑有相同的key情况
-        feeCodeMapping.put(AnalysePriceWrapper.getFeeCode(), bigDecimal1);
+        feeCodeValueMapping.put(analysePriceWrapper.getFeeCode(), bigDecimal);
+        // 设置给单价分析封装类已完成计算
+        analysePriceWrapper.setIsCalculate(CALCULATED);
     }
 
     /**

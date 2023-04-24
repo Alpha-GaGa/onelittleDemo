@@ -1,6 +1,5 @@
 package com.cost.manage;
 
-import com.cost.common.redis.service.RedisService;
 import com.cost.constant.AdjustCacheKey;
 import com.cost.domain.CostFee;
 import com.cost.domain.SysFeeCodeDTO;
@@ -8,12 +7,15 @@ import com.cost.domain.request.CostFeeQueryRequest;
 import com.cost.domain.request.FeeCodeQueryRequest;
 import com.cost.service.ICostFeeService;
 import com.cost.service.IFeeCodeRelService;
+import com.cost.service.impl.RedisService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.annotation.CacheConfig;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -34,9 +36,11 @@ public class AdjustDataManager {
     private RedisService redisService;
 
     @Autowired
+    @Qualifier("feeCodeRelServiceImpl")
     private IFeeCodeRelService feeCodeRelService;
 
     @Autowired
+    @Qualifier("costFeeServiceImpl")
     private ICostFeeService costFeeService;
 
     /**
@@ -61,15 +65,14 @@ public class AdjustDataManager {
         Map<String, SysFeeCodeDTO> feeCodeMapping = null;
         if (Boolean.TRUE.equals(redisService.hasKey(adjustRedisKey))) {
             // 从缓存中获取
-            log.info("正在从Reids获取 fileType={} 、 feeDocId={}  的专属费用代号对应规则 redisKey={} outTime={}",
+            log.info("AdjustDataManager正在从Reids获取 fileType={} 、 feeDocId={}  的费用代号对应规则 redisKey={}",
                     adjustCacheKey.getFileTypeCacheKeyEnum().getFileType(),
                     adjustCacheKey.getFeeDocId(),
-                    adjustRedisKey,
-                    redisService.getExpire(adjustRedisKey));
+                    adjustRedisKey);
             feeCodeMapping = redisService.getCacheObject(adjustRedisKey);
         } else {
             // 从数据库中获取
-            log.info("正在从数据库获取 fileType={} 、 feeDocId={} 的专属费用代号对应规则",
+            log.info("AdjustDataManager正在从数据库获取 fileType={} 、 feeDocId={} 的费用代号对应规则",
                     adjustCacheKey.getFileTypeCacheKeyEnum().getFileType(),
                     adjustCacheKey.getFeeDocId());
             List<SysFeeCodeDTO> feeCodeDTOList = feeCodeRelService.selectFeeCode(
@@ -81,12 +84,10 @@ public class AdjustDataManager {
             // 以sourceFeeCode为key处理数据
             feeCodeMapping = feeCodeDTOList.stream().collect(Collectors.toMap(SysFeeCodeDTO::getSourceFeeCode, sysFeeCodeDTO -> sysFeeCodeDTO));
 
-            log.info("保存 fileType={} 、  feeDocId={} 的专属费用代号对应规则到Redis redisKey={} outTime={}{}",
+            log.info("保存 fileType={} 、  feeDocId={} 的专属费用代号对应规则到Redis redisKey={}",
                     adjustCacheKey.getFileTypeCacheKeyEnum().getFileType(),
                     adjustCacheKey.getFeeDocId(),
-                    adjustRedisKey,
-                    EXPIRATION,
-                    TimeUnit.MINUTES);
+                    adjustRedisKey);
 
             // 保存到Redis中
             redisService.setCacheObject(adjustRedisKey, feeCodeMapping, EXPIRATION, TimeUnit.MINUTES);

@@ -3,8 +3,8 @@ package com.cost.demo;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.math.BigDecimal;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -51,6 +51,17 @@ public class DemoAlone {
     public void testConcat(){
         String feeExpr = "绝对独立费";
         System.out.println("\"独立费\".contains(feeExpr) = " + feeExpr.contains("独立费"));
+
+    }
+
+    @Test
+    public void testAdd(){
+
+        List<BigDecimal> bigDecimalList = Arrays.asList(new BigDecimal("114514"), new BigDecimal("1919"));
+
+        BigDecimal result = bigDecimalList.stream().reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        System.out.println("result = " + result);
 
     }
 }
