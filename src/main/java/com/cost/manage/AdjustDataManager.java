@@ -115,7 +115,7 @@ public class AdjustDataManager {
         // todo 查询条件需要重新设置，走索引
         List<CostFee> costFeeList = costFeeService.selectCostFee(
                 new CostFeeQueryRequest()
-                        .setCostDocId(adjustCacheKey.getFeeDocId())
+                        .setCostDocId(feeCodeWrapper.getCostDocId())
                         .setFeeDocId(feeCodeWrapper.getFeeDocId())
                         .setLineId(feeCodeWrapper.getLineId())
         );

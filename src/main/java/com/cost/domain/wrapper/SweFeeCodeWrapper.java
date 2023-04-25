@@ -36,6 +36,11 @@ public class SweFeeCodeWrapper{
     private Long lineId;
 
     /**
+     * 造价文件id
+     */
+    private Long costDocId;
+
+    /**
      * 封装数据类型(0子目 1最下层指标/清单 2清单法)
      */
     private String type;

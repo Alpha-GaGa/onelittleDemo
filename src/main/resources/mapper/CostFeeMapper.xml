@@ -16,6 +16,6 @@
             </if>
         </where>
         AND status = 0
-        GROUP BY order_num;
+        ORDER BY order_num;
     </select>
 </mapper>

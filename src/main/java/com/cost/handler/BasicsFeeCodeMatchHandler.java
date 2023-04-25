@@ -158,8 +158,8 @@ public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler {
                 {
                     // todo 如果判断的是合价呢？
                     // 如果集合内adjustWrapper对象JudgementField字段value与JudgementValue()相同，分析conditionalExpr()，累加
-                    String value = String.valueOf(getValue(adjustWrapper, feeCodeConditional.getJudgementField()));
-                    if (StringUtils.isNotBlank(value) && value.equals(feeCodeConditional.getJudgementValue())) {
+                    String valueStr = String.valueOf(getValue(adjustWrapper, feeCodeConditional.getJudgementField()));
+                    if (StringUtils.isNotBlank(valueStr) && valueStr.equals(feeCodeConditional.getJudgementValue())) {
                         return calculate(adjustWrapper, type, feeCodeConditional.getConditionalExpr());
                     }
 
@@ -258,8 +258,8 @@ public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler {
                 .map(adjustWrapper -> {
                     // todo 如果判断的是合价呢？
                     // 如果集合内adjustWrapper对象JudgementField字段value包含JudgementValue()，分析conditionalExpr()，累加
-                    String value = String.valueOf(getValue(adjustWrapper, feeCodeConditional.getJudgementField()));
-                    if (StringUtils.isNotBlank(value) && value.contains(feeCodeConditional.getJudgementValue())) {
+                    String valueStr = String.valueOf(getValue(adjustWrapper, feeCodeConditional.getJudgementField()));
+                    if (StringUtils.isNotBlank(valueStr) && valueStr.contains(feeCodeConditional.getJudgementValue())) {
                         return calculate(adjustWrapper, type, feeCodeConditional.getConditionalExpr());
                     }
 
@@ -300,8 +300,8 @@ public abstract class BasicsFeeCodeMatchHandler implements FeeCodeMatchHandler {
             fieldNameMap.put(fieldName, autoGetValue(adjustWrapper, type, fieldName));
         }
 
-        // 使用calculateByJexl计算表达式
-        return CalculateUtils.calculateByJexl(expr, fieldNameMap);
+        // 使用Aviator计算表达式
+        return CalculateUtils.calculateByAviator(expr, fieldNameMap);
     }
 
     /**

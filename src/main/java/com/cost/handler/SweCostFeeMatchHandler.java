@@ -4,6 +4,7 @@ import com.cost.constant.AdjustCacheKey;
 import com.cost.constant.FeeCodeConditionalActionOnConstant;
 import com.cost.constant.FeeCodeConditionalJudgeConstant;
 import com.cost.constant.FeeCodeConditionalTypeConstant;
+import com.cost.domain.CostFee;
 import com.cost.domain.SysFeeCodeDTO;
 import com.cost.domain.common.FeeCodeConditional;
 import com.cost.domain.wrapper.SweFeeCodeWrapper;
@@ -85,7 +86,10 @@ public class SweCostFeeMatchHandler extends BasicsFeeCodeMatchHandler {
 
         // 拼装条件，目前只知道一个措施项目费
         SysFeeCodeDTO sysFeeCodeDTO = Optional.ofNullable(adjustDataManager.getCostFeeMapping(costFeeKey, feeCodeWrapper))
-                .map(costFeeMapping -> costFeeMapping.get(feeCodeWrapper.getFeeCode()))
+                .map(costFeeMapping -> {
+                    CostFee costFee = costFeeMapping.get(feeCodeWrapper.getFeeCode());
+                    return costFee;
+                })
                 .map(costFee -> {
                     // 获取取费文件的feeExpr
                     String feeExpr = costFee.getFeeExpr();
@@ -100,7 +104,7 @@ public class SweCostFeeMatchHandler extends BasicsFeeCodeMatchHandler {
                         if (StringUtils.isBlank(feeName)) {
                             throw new IllegalArgumentException("Id为" + costFee.getId() + "的取费文件数据异常，没有对应的feeName");
                         }
-                        // 如果，feeName和单价分析一致，即为措施项目费，需要从子集集合中获取对应的子目进行累加
+                        // 如果取费文件feeName和单价分析feeName一致，即为措施项目费，需要从子集集合中获取对应的子目进行累加
                         if (feeName.equals(feeCodeWrapper.getFeeName())) {
                             // 创建措施项目费规则
                             return measureFee(feeCodeWrapper);

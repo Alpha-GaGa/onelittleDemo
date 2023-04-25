@@ -5,6 +5,7 @@ import com.cost.constant.FeeCodeScopeConstant;
 import com.cost.constant.FileTypeConstant;
 import com.cost.converter.AdjustWrapperConverter;
 import com.cost.domain.*;
+import com.cost.domain.common.TreeNode;
 import com.cost.domain.request.FeeCodeQueryRequest;
 import com.cost.domain.wrapper.AnalysePriceWrapper;
 import com.cost.domain.wrapper.SweAdjustWrapper;
@@ -33,7 +34,6 @@ import java.util.List;
  * @description 测试类
  * @Created zhangtianhao
  * @date 2023-04-11 23:17
- * @version
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = DemoApplication.class)
@@ -63,7 +63,7 @@ public class Demo {
      * 测试单个子目计算
      */
     @Test
-    public void testItem(){
+    public void testItem() {
 
         long begin = System.currentTimeMillis();
 
@@ -77,14 +77,14 @@ public class Demo {
 
 
         // 获取子目单价分析处理器
-        SweItemAnalysisHandler analysisHandler = (SweItemAnalysisHandler)analysisHandlerFactory.
+        SweItemAnalysisHandler analysisHandler = (SweItemAnalysisHandler) analysisHandlerFactory.
                 getAnalysisHandler(sweAdjustWrapper, FileTypeConstant.SWE_FILE, FeeCodeScopeConstant.ITEM);
 
 
         // 获取子目对应的单价分析
         List<AnalysePrice> analysePriceList = costAnalysePriceMapper.selectCostAnalysePriceList(itemId);
         log.info("原始数据");
-        analysePriceList.forEach(System.out::println);
+        analysePriceList.forEach(this::print);
 
         // 处理单价分析数据，封装到标准类AnalysePriceWrapper，为计算准备基本参数
         List<AnalysePriceWrapper> analysePriceWrapperList = adjustWrapperConverter.analysePrice2AnalysePriceWrapper(analysePriceList);
@@ -92,7 +92,7 @@ public class Demo {
         // 进行单价分析，获取有完整结果的单价分析树
         List<AnalysePriceWrapper> analysis = analysisHandler.analysis(analysePriceWrapperList);
         log.info("计算数据");
-        analysis.forEach(System.out::println);
+        analysis.forEach(this::printWrapper);
 
         // 通过单价分析树结果补充子目数据
 
@@ -104,7 +104,7 @@ public class Demo {
      * 测试最下层指标计算
      */
     @Test
-    public void testIndex(){
+    public void testIndex() {
 
         long begin = System.currentTimeMillis();
 
@@ -122,13 +122,13 @@ public class Demo {
         sweAdjustWrapper.setChildList(sweAdjustWrapperList);
 
         // 获取子目单价分析处理器
-        SweIndexAnalysisHandler analysisHandler = (SweIndexAnalysisHandler)analysisHandlerFactory.
+        SweIndexAnalysisHandler analysisHandler = (SweIndexAnalysisHandler) analysisHandlerFactory.
                 getAnalysisHandler(sweAdjustWrapper, FileTypeConstant.SWE_FILE, FeeCodeScopeConstant.INDEX);
 
         // 获取子目对应的单价分析
         List<AnalysePrice> analysePriceList = costAnalysePriceMapper.selectCostAnalysePriceList(indexId);
         log.info("原始数据");
-        analysePriceList.forEach(System.out::println);
+        analysePriceList.forEach(this::print);
 
         // 处理单价分析数据，封装到标准类AnalysePriceWrapper，为计算准备基本参数
         List<AnalysePriceWrapper> analysePriceWrapperList = adjustWrapperConverter.analysePrice2AnalysePriceWrapper(analysePriceList);
@@ -136,7 +136,8 @@ public class Demo {
         // 进行单价分析，获取有完整结果的单价分析树
         List<AnalysePriceWrapper> analysis = analysisHandler.analysis(analysePriceWrapperList);
         log.info("计算数据");
-        analysis.forEach(System.out::println);
+        // 打印所有节点
+        printTree(analysis);
 
         // 通过单价分析树结果补充子目数据
 
@@ -144,8 +145,50 @@ public class Demo {
         log.info("计算数据,共用时：{}", System.currentTimeMillis() - begin);
     }
 
+    /**
+     * 获取子集
+     *
+     * @return
+     */
+    private void printTree(List<AnalysePriceWrapper> nodes) {
+        if (null == nodes) return;
+        for (AnalysePriceWrapper node : nodes) {
+            printWrapper(node);
+            printTree(node.getChildren());
+        }
+    }
+
+    private void print(AnalysePrice analysePrice) {
+        System.out.println(
+                "AnalysePrice( id=" + analysePrice.getId() +
+                        ", parentId=" + analysePrice.getParentId() +
+                        ", feeName=" + analysePrice.getFeeName() +
+                        ", feeCode=" + analysePrice.getFeeCode() +
+                        ", feeExpr=" + analysePrice.getFeeExpr() +
+                        ", feeRate=" + analysePrice.getFeeRate() +
+                        ", feeAmount=" + analysePrice.getFeeAmount() +
+                        ", unit=" + analysePrice.getUnit() +
+                        " )"
+        );
+    }
+
+    private void printWrapper(AnalysePriceWrapper node) {
+        System.out.println(
+                "AnalysePriceWrapper( id=" + node.getId() +
+                        ", parentId=" + node.getParentId() +
+                        ", feeName=" + node.getFeeName() +
+                        ", feeCode=" + node.getFeeCode() +
+                        ", feeExpr=" + node.getFeeExpr() +
+                        ", feeRate=" + node.getFeeRate() +
+                        ", feeAmount=" + node.getFeeAmount() +
+                        ", unit=" + node.getUnit() +
+                        ", isCalculate=" + node.getIsCalculate() +
+                        " )"
+        );
+    }
+
     @Test
-    public void testFeeCodeRel(){
+    public void testFeeCodeRel() {
         List<SysFeeCodeDTO> sysFeeCodeDTOS = feeCodeRelMapper.selectFeeCode(
                 new FeeCodeQueryRequest()
                         .setFeeDocId(21L)

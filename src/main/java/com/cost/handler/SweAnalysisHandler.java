@@ -179,8 +179,8 @@ public abstract class SweAnalysisHandler extends BasicsTreeBuilder implements An
                         .setFeeName(AnalysePriceWrapper.getFeeName())
                         // 设置待分析费用代号
                         .setFeeCode(AnalysePriceWrapper.getFeeCode())
-                        // 设置调差前的价格
-                        .setAdjustBeforePrice(new BigDecimal(AnalysePriceWrapper.getFeeExpr()))
+                        // 设置调差前的价格，默认为0
+                        .setAdjustBeforePrice(new BigDecimal(Optional.ofNullable(AnalysePriceWrapper.getFeeExpr()).orElse("0")))
                         // 设置单价分析原来的总价
                         .setFeeAmount(AnalysePriceWrapper.getFeeAmount())
         );
