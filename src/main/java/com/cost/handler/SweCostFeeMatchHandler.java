@@ -78,8 +78,15 @@ public class SweCostFeeMatchHandler extends BasicsFeeCodeMatchHandler {
             return Optional.ofNullable(feeCodeWrapper.getFeeAmount()).orElse(null);
         }
 
-        log.info("{} 正在从 fileType={} 的 公共费用代号映射commonFeeCodeMapping 中获取 feeCode={} 的对应规则", simpleName, fileType, feeCodeWrapper.getFeeCode());
-        // 生产对应的CostFeeKey todo 需要区分线路
+        log.info("{} 正在从 lineId={} 、 costDocId={} 、 feeDocId={} 的取费文件中获取 feeCode={} 对应的规则",
+                simpleName,
+                feeCodeWrapper.getLineId(),
+                feeCodeWrapper.getCostDocId(),
+                feeCodeWrapper.getFeeDocId(),
+                feeCodeWrapper.getFeeCode()
+        );
+
+        // 生产对应的CostFeeKey
         AdjustCacheKey costFeeKey = new AdjustCacheKey().cosFeeeCacheKey(
                 feeCodeWrapper.getFileTypeCacheKeyEnum(), feeCodeWrapper.getFeeDocId());
 
@@ -98,7 +105,7 @@ public class SweCostFeeMatchHandler extends BasicsFeeCodeMatchHandler {
                         throw new IllegalArgumentException("暂时无法解析，需要人工介入");
                     }
                     // 如果feeExpr为空，并且总价不为0，todo 目前只知道项目措施费
-                    if (0 == BigDecimal.ZERO.compareTo(costFee.getFeeAmount())) {
+                    if (0 != BigDecimal.ZERO.compareTo(costFee.getFeeAmount())) {
                         // 获取费用名称
                         String feeName = costFee.getFeeName();
                         if (StringUtils.isBlank(feeName)) {

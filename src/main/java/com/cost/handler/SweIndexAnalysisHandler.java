@@ -78,7 +78,7 @@ public class SweIndexAnalysisHandler extends SweAnalysisHandler {
 
             // 如果feeExpr为空或者是纯数字，但是费用总价非0，需要进一步分析
             BigDecimal feeAmount = BigDecimal.ZERO;
-            if (0 == BigDecimal.ZERO.compareTo(analysePriceWrapper.getFeeAmount())) {
+            if (0 != BigDecimal.ZERO.compareTo(analysePriceWrapper.getFeeAmount())) {
                 // todo 这里需要详细补充系统代号处理器的处理逻辑？
                 // 如果总价非0，分析取费代号
                 feeAmount = Optional.ofNullable(analysePriceWrapper)
@@ -94,8 +94,18 @@ public class SweIndexAnalysisHandler extends SweAnalysisHandler {
                                 // todo 需要加异常
                                 new RuntimeException("无法通过 fileType=" + fileTypeCacheKeyEnum.getFileType() + " feeDocId=" + feeDocId + "登记的系统映射资料解析 feeCode=" + analysePriceWrapper.getFeeCode())
                         );
+
+                // 如果feeExpr不为空， 更新feeExpr参数
+                if (StringUtils.isNotBlank(analysePriceWrapper.getFeeExpr())){
+                    analysePriceWrapper.setFeeExpr(String.valueOf(feeAmount));
+                }
+                // 和费率相乘
+                feeAmount = feeAmount.multiply(analysePriceWrapper.getFeeRate()).divide(ONE_HUNDRED);
+                // 赋值feeAmount
+                analysePriceWrapper.setFeeAmount(feeAmount);
             }
-            analysePriceWrapper.setFeeAmount(feeAmount);
+
+            // 保存到feeCodeValueMapping作为计算基础数据
             feeCodeValueMapping.put(feeCode, feeAmount);
             // 设置给单价分析封装类已完成计算
             analysePriceWrapper.setIsCalculate(CALCULATED);

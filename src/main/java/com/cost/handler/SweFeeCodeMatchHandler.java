@@ -54,7 +54,7 @@ public class SweFeeCodeMatchHandler extends BasicsFeeCodeMatchHandler {
             throw new RuntimeException(simpleName + "只支持分析 fileType=1 数据，现传入数据 fileType=" + fileType);
         }
 
-        log.info("{} 正在从 fileType={} 的 公共费用代号映射commonFeeCodeMapping 中获取 feeCode={} 的对应规则", simpleName, fileType, feeCodeWrapper.getFeeCode());
+        log.info("{} 正在从 fileType={} 的 公共费用代号映射 commonFeeCodeMapping 中获取 feeCode={} 的对应规则", simpleName, fileType, feeCodeWrapper.getFeeCode());
         // 先从 公共费用代号映射commonFeeCodeMapping 中获取对应的规则
         AdjustCacheKey commonKey = new AdjustCacheKey().commonFeeCodeCacheKey(feeCodeWrapper.getFileTypeCacheKeyEnum());
         SysFeeCodeDTO sysFeeCodeDTO = Optional.ofNullable(adjustDataManager.getFeeCodeMapping(commonKey))
@@ -75,12 +75,11 @@ public class SweFeeCodeMatchHandler extends BasicsFeeCodeMatchHandler {
         BigDecimal result = null;
         try {
             result = analysis(feeCodeWrapper, sysFeeCodeDTO);
+            log.info("{} 解析 feeCode={} ，sysFeeCodeDTO={} ，result={} ", simpleName, feeCodeWrapper.getFeeCode(), sysFeeCodeDTO, result);
             // todo 需要自定义调差异常
         }catch (Exception e){
             log.warn("{} 解析 feeCode={} 失败，原因:{}", simpleName, feeCodeWrapper.getFeeCode(), e.getMessage());
         }
-
-        log.info("{} 解析 feeCode={} ，sysFeeCodeDTO={} ，result={} ", simpleName, feeCodeWrapper.getFeeCode(), sysFeeCodeDTO, result);
         return result;
     }
 }
