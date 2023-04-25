@@ -63,7 +63,7 @@ public class SweIndexAnalysisHandler extends SweAnalysisHandler {
             return;
         }
 
-        // 如果如果该单价分析节点wmmName为-1，feeExpr为计算方程式或为空，需要进行拆解，方程式由数字及英文字符串和( ) + - * /构成
+        // 如果如果该单价分析节点wmmName为-1，需要进行拆解，方程式由数字及英文字符串和( ) + - * /构成
         if (StringUtils.isNotBlank(analysePriceWrapper.getWmmName()) && WmmNameConstant.CALCULATE.equals(analysePriceWrapper.getWmmName())) {
             // 如果feeExpr非空，并且不是纯数字，获取公式中包含的费用代号
             if (StringUtils.isNotBlank(analysePriceWrapper.getFeeExpr()) && !analysePriceWrapper.getFeeExpr().matches("[\\d.]+")) {
@@ -76,9 +76,9 @@ public class SweIndexAnalysisHandler extends SweAnalysisHandler {
                 return;
             }
 
-            // 如果feeExpr为空，但是费用总价非0，需要进一步分析
+            // 如果feeExpr为空或者是纯数字，但是费用总价非0，需要进一步分析
             BigDecimal feeAmount = BigDecimal.ZERO;
-            if (!BigDecimal.ZERO.equals(analysePriceWrapper.getFeeAmount())) {
+            if (0 == BigDecimal.ZERO.compareTo(analysePriceWrapper.getFeeAmount())) {
                 // todo 这里需要详细补充系统代号处理器的处理逻辑？
                 // 如果总价非0，分析取费代号
                 feeAmount = Optional.ofNullable(analysePriceWrapper)

@@ -72,7 +72,7 @@ public class SweCostFeeMatchHandler extends BasicsFeeCodeMatchHandler {
             throw new RuntimeException(simpleName + "只支持分析 fileType=1 数据，现传入数据 fileType=" + fileType);
         }
 
-        // 如果单价分析名称为独立费
+        // 如果单价分析名称为独立费,todo 如果独立费单独调差呢
         if (StringUtils.isNotBlank(feeCodeWrapper.getFeeName()) && feeCodeWrapper.getFeeName().contains(INDEPENDENT_FEE_STR)) {
             // 独立费直接取费用总值
             return Optional.ofNullable(feeCodeWrapper.getFeeAmount()).orElse(null);
@@ -98,7 +98,7 @@ public class SweCostFeeMatchHandler extends BasicsFeeCodeMatchHandler {
                         throw new IllegalArgumentException("暂时无法解析，需要人工介入");
                     }
                     // 如果feeExpr为空，并且总价不为0，todo 目前只知道项目措施费
-                    if (!BigDecimal.ZERO.equals(costFee.getFeeAmount())) {
+                    if (0 == BigDecimal.ZERO.compareTo(costFee.getFeeAmount())) {
                         // 获取费用名称
                         String feeName = costFee.getFeeName();
                         if (StringUtils.isBlank(feeName)) {

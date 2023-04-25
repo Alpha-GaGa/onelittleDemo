@@ -70,7 +70,7 @@ public class SweItemAnalysisHandler extends SweAnalysisHandler {
 
             // 如果feeExpr为空，但是费用总价非0，需要进一步分析
             BigDecimal feeAmount = BigDecimal.ZERO;
-            if (!BigDecimal.ZERO.equals(analysePriceWrapper.getFeeAmount())) {
+            if (0 == BigDecimal.ZERO.compareTo(analysePriceWrapper.getFeeAmount())) {
                 // 如果总价非0，分析取费代号
                 feeAmount = Optional.ofNullable(analysisFeeCode(analysePriceWrapper, TYPE))
                         .orElseThrow(() ->

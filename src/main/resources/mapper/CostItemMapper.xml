@@ -9,6 +9,7 @@
                 AND id = #{itemId}
             </if>
         </where>
+        AND `status` = 0
     </select>
 
     <select id="selectCostItemListByParentId" resultType="com.cost.domain.CostItem">
@@ -18,5 +19,6 @@
                 and parent_id = #{parentId}
             </if>
         </where>
+        AND `status` = 0
     </select>
 </mapper>

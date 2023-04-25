@@ -64,4 +64,20 @@ public class DemoAlone {
         System.out.println("result = " + result);
 
     }
+
+    @Test
+    public void testEqual(){
+        BigDecimal zero = BigDecimal.ZERO;
+        BigDecimal decimal = new BigDecimal("0.000000");
+
+
+        int i1 = zero.compareTo(decimal);
+        System.out.println("zero = " + zero);
+        System.out.println("decimal = " + decimal);
+        System.out.println("zero.equals(decimal) ? " + (0 == zero.compareTo(decimal) ? "true" : "false"));
+
+        int i2 = decimal.compareTo(zero);
+        System.out.println("decimal.equals(zero) ? " + (0 == decimal.compareTo(zero) ? "true" : "false"));
+
+    }
 }
